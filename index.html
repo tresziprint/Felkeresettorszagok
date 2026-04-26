@@ -1,51 +1,18 @@
 <!DOCTYPE html>
-<html>
+<html lang="hu">
   <head>
-    <title>Interaktív megjelenítő térkép</title>
+    <title>Utazásaim Térképe</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-      #map {
-        height: 100vh;
-        width: 100%;
-      }
+      body { margin: 0; padding: 0; }
+      #map { height: 100vh; width: 100%; }
       #imageModal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.8);
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 10000;
       }
-      #modalImg {
-        max-width: 90%;
-        max-height: 90%;
-      }
-      .streetview-container { /* Added from jelölő minta96 */
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        margin-top: 4px;
-      }
-      .streetview-icon { /* Added from jelölő minta96 */
-        width: 40px; /* Adjusted size */
-        height: 40px; /* Adjusted size */
-        background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234285F4"%3E%3Cpath d="M12 4c4.42 0 8 3.58 8 8s-3.58 8-8 8-8-3.58-8-8 3.58-8 8-8m0-2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/%3E%3Ccircle cx="12" cy="12" r="5" fill="%23EA4335"/%3E%3C/svg%3E');
-        background-size: contain;
-        margin-bottom: 3px; /* Adjusted margin */
-      }
-      .streetview-text { /* Added from jelölő minta96 */
-        font-size: 11px; /* Adjusted font size */
-        text-align: center;
-        color: #333;
-      }
+      #modalImg { max-width: 90%; max-height: 90%; }
     </style>
   </head>
   <body>
@@ -58,569 +25,95 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 
     <script>
-      const map = L.map('map').setView([47.4979, 19.0402], 7);
-      const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
+      const map = L.map('map').setView([20, 0], 2);
+
+      // Itt az eredeti térkép, ami GitHub-ról már jól fog működni!
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
       }).addTo(map);
 
-      const markers = L.markerClusterGroup({
-        disableClusteringAtZoom: 1 // Disable clustering at zoom level 1 or higher
-      });
+      const markers = L.markerClusterGroup({ disableClusteringAtZoom: 1 });
 
-     const locations = [
-  {
-    "lat": 18.25,
-    "lng": -77.5,
-    "title": "Jamaica",
-    image: "https://flagcdn.com/w320/jm.png",
-    "continent": "Észak-Amerika",
-    "visited": true
-  },
-  {
-    "lat": 57,
-    "lng": 25,
-    "title": "Latvia",
-    image: "https://flagcdn.com/w320/lv.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 54,
-    "lng": -2,
-    "title": "United Kingdom",
-    image: "https://flagcdn.com/w320/gb.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 39,
-    "lng": 22,
-    "title": "Greece",
-    image: "https://flagcdn.com/w320/gr.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 43.73333333,
-    "lng": 7.4,
-    "title": "Monaco",
-    image: "https://flagcdn.com/w320/mc.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 34,
-    "lng": 9,
-    "title": "Tunisia",
-    image: "https://flagcdn.com/w320/tn.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 29.35,
-    "lng": 47.98,
-    "title": "Kuwait",
-    image: "https://flagcdn.com/w320/kw.png",
-    "continent": "Afrika",
-    "visited": true
-  },
-  {
-    "lat": 25.0343,
-    "lng": -77.3963,
-    "title": "Bahamas",
-    image: "https://flagcdn.com/w320/bs.png",
-    "continent": "Észak-Amerika",
-    "visited": true
-  },
-  {
-    "lat": -6,
-    "lng": 35,
-    "title": "Tanzania",
-    image: "https://flagcdn.com/w320/tz.png",
-    "continent": "Afrika",
-    "visited": true
-  },
-  {
-    "lat": 32,
-    "lng": -5,
-    "title": "Morocco",
-    image: "https://flagcdn.com/w320/ma.png",
-    "continent": "Afrika",
-    "visited": true
-  },
-  {
-    "lat": 42.5,
-    "lng": 19.3,
-    "title": "Montenegro",
-    image: "https://flagcdn.com/w320/me.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 39.5,
-    "lng": -8,
-    "title": "Portugal",
-    image: "https://flagcdn.com/w320/pt.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 49.75,
-    "lng": 6.16666666,
-    "title": "Luxembourg",
-    image: "https://flagcdn.com/w320/lu.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 44,
-    "lng": 18,
-    "title": "Bosnia and Herzegovina",
-    image: "https://flagcdn.com/w320/ba.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 59,
-    "lng": 26,
-    "title": "Estonia",
-    image: "https://flagcdn.com/w320/ee.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 38,
-    "lng": -97,
-    "title": "United States",
-    image: "https://flagcdn.com/w320/us.png",
-    "continent": "Észak-Amerika",
-    "visited": true
-  },
-  {
-    "lat": 53,
-    "lng": -8,
-    "title": "Ireland",
-    image: "https://flagcdn.com/w320/ie.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 21,
-    "lng": 57,
-    "title": "Oman",
-    image: "https://flagcdn.com/w320/om.png",
-    "continent": "Afrika",
-    "visited": true
-  },
-  {
-    "lat": 49.75,
-    "lng": 15.5,
-    "title": "Czechia",
-    image: "https://flagcdn.com/w320/cz.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 60,
-    "lng": -95,
-    "title": "Canada",
-    image: "https://flagcdn.com/w320/ca.png",
-    "continent": "Észak-Amerika",
-    "visited": true
-  },
-  {
-    "lat": -5,
-    "lng": 120,
-    "title": "Indonesia",
-    image: "https://flagcdn.com/w320/id.png",
-    "continent": "Ausztrália és Óceánia",
-    "visited": true
-  },
-  {
-    "lat": 31.9,
-    "lng": 35.2,
-    "title": "Palestine",
-    image: "https://flagcdn.com/w320/ps.png",
-    "continent": "Afrika",
-    "visited": true
-  },
-  {
-    "lat": 35,
-    "lng": 33,
-    "title": "Cyprus",
-    image: "https://flagcdn.com/w320/cy.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 48.66666666,
-    "lng": 19.5,
-    "title": "Slovakia",
-    image: "https://flagcdn.com/w320/sk.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 46.11666666,
-    "lng": 14.81666666,
-    "title": "Slovenia",
-    image: "https://flagcdn.com/w320/si.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 51,
-    "lng": 9,
-    "title": "Germany",
-    image: "https://flagcdn.com/w320/de.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 42.666667,
-    "lng": 21.166667,
-    "title": "Kosovo",
-    image: "https://flagcdn.com/w320/xk.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 7,
-    "lng": 81,
-    "title": "Sri Lanka",
-    image: "https://flagcdn.com/w320/lk.png",
-    "continent": "Ázsia",
-    "visited": true
-  },
-  {
-    "lat": 50.83333333,
-    "lng": 4,
-    "title": "Belgium",
-    image: "https://flagcdn.com/w320/be.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 31.97,
-    "lng": 34.83,
-    "title": "Israel",
-    image: "https://flagcdn.com/w320/il.png",
-    "continent": "Afrika",
-    "visited": true
-  },
-  {
-    "lat": 56,
-    "lng": 10,
-    "title": "Denmark",
-    image: "https://flagcdn.com/w320/dk.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 36.13333333,
-    "lng": -5.35,
-    "title": "Gibraltar",
-    image: "https://flagcdn.com/w320/gi.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 43.76666666,
-    "lng": 12.41666666,
-    "title": "San Marino",
-    image: "https://flagcdn.com/w320/sm.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 39,
-    "lng": 35,
-    "title": "Turkey",
-    image: "https://flagcdn.com/w320/tr.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 62,
-    "lng": 10,
-    "title": "Norway",
-    image: "https://flagcdn.com/w320/no.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 49,
-    "lng": 32,
-    "title": "Ukraine",
-    image: "https://flagcdn.com/w320/ua.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 62,
-    "lng": 15,
-    "title": "Sweden",
-    image: "https://flagcdn.com/w320/se.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 40.5,
-    "lng": 47.5,
-    "title": "Azerbaijan",
-    image: "https://flagcdn.com/w320/az.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 27,
-    "lng": 30,
-    "title": "Egypt",
-    image: "https://flagcdn.com/w320/eg.png",
-    "continent": "Afrika",
-    "visited": true
-  },
-  {
-    "lat": 43,
-    "lng": 25,
-    "title": "Bulgaria",
-    image: "https://flagcdn.com/w320/bg.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 42.5,
-    "lng": 1.5,
-    "title": "Andorra",
-    image: "https://flagcdn.com/w320/ad.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 60,
-    "lng": 100,
-    "title": "Russia",
-    image: "https://flagcdn.com/w320/ru.png",
-    "continent": "Ázsia",
-    "visited": true
-  },
-  {
-    "lat": 41.9,
-    "lng": 12.45,
-    "title": "Vatican City",
-    image: "https://flagcdn.com/w320/va.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 45.16666666,
-    "lng": 15.5,
-    "title": "Croatia",
-    image: "https://flagcdn.com/w320/hr.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 42,
-    "lng": 43.5,
-    "title": "Georgia",
-    image: "https://flagcdn.com/w320/ge.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 35,
-    "lng": 105,
-    "title": "China",
-    image: "https://flagcdn.com/w320/cn.png",
-    "continent": "Ázsia",
-    "visited": true
-  },
-  {
-    "lat": 42.83333333,
-    "lng": 12.83333333,
-    "title": "Italy",
-    image: "https://flagcdn.com/w320/it.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 47,
-    "lng": 8,
-    "title": "Switzerland",
-    image: "https://flagcdn.com/w320/ch.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 64,
-    "lng": 26,
-    "title": "Finland",
-    image: "https://flagcdn.com/w320/fi.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 35.9375,
-    "lng": 14.3754,
-    "title": "Malta",
-    image: "https://flagcdn.com/w320/mt.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 31,
-    "lng": 36,
-    "title": "Jordan",
-    image: "https://flagcdn.com/w320/jo.png",
-    "continent": "Afrika",
-    "visited": true
-  },
-  {
-    "lat": 52,
-    "lng": 20,
-    "title": "Poland",
-    image: "https://flagcdn.com/w320/pl.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 41.83333333,
-    "lng": 22,
-    "title": "North Macedonia",
-    image: "https://flagcdn.com/w320/mk.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 46,
-    "lng": 2,
-    "title": "France",
-    image: "https://flagcdn.com/w320/fr.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 40,
-    "lng": -4,
-    "title": "Spain",
-    image: "https://flagcdn.com/w320/es.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 23,
-    "lng": -102,
-    "title": "Mexico",
-    image: "https://flagcdn.com/w320/mx.png",
-    "continent": "Észak-Amerika",
-    "visited": true
-  },
-  {
-    "lat": 44,
-    "lng": 21,
-    "title": "Serbia",
-    image: "https://flagcdn.com/w320/rs.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 46,
-    "lng": 25,
-    "title": "Romania",
-    image: "https://flagcdn.com/w320/ro.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 47,
-    "lng": 20,
-    "title": "Hungary",
-    image: "https://flagcdn.com/w320/hu.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 41,
-    "lng": 20,
-    "title": "Albania",
-    image: "https://flagcdn.com/w320/al.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 47.26666666,
-    "lng": 9.53333333,
-    "title": "Liechtenstein",
-    image: "https://flagcdn.com/w320/li.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 19.3133,
-    "lng": -81.2546,
-    "title": "Cayman Islands",
-    image: "https://flagcdn.com/w320/ky.png",
-    "continent": "Észak-Amerika",
-    "visited": true
-  },
-  {
-    "lat": 47.33333333,
-    "lng": 13.33333333,
-    "title": "Austria",
-    image: "https://flagcdn.com/w320/at.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 52.5,
-    "lng": 5.75,
-    "title": "Netherlands",
-    image: "https://flagcdn.com/w320/nl.png",
-    "continent": "Európa",
-    "visited": true
-  },
-  {
-    "lat": 1.36666666,
-    "lng": 103.8,
-    "title": "Singapore",
-    image: "https://flagcdn.com/w320/sg.png",
-    "continent": "Ázsia",
-    "visited": true
-  },
-{
-    "lat": 24,
-    "lng": 54,
-    "title": "United Arab Emirates",
-    "image": "https://flagcdn.com/w320/ae.png",
-    "continent": "Afrika",
-    "visited": true
-  }
-];
+      const locations = [
+        { "lat": 18.25, "lng": -77.5, "title": "Jamaica", image: "https://flagcdn.com/w320/jm.png", "continent": "Észak-Amerika" },
+        { "lat": 57, "lng": 25, "title": "Latvia", image: "https://flagcdn.com/w320/lv.png", "continent": "Európa" },
+        { "lat": 54, "lng": -2, "title": "United Kingdom", image: "https://flagcdn.com/w320/gb.png", "continent": "Európa" },
+        { "lat": 39, "lng": 22, "title": "Greece", image: "https://flagcdn.com/w320/gr.png", "continent": "Európa" },
+        { "lat": 43.73333333, "lng": 7.4, "title": "Monaco", image: "https://flagcdn.com/w320/mc.png", "continent": "Európa" },
+        { "lat": 34, "lng": 9, "title": "Tunisia", image: "https://flagcdn.com/w320/tn.png", "continent": "Afrika" },
+        { "lat": 29.35, "lng": 47.98, "title": "Kuwait", image: "https://flagcdn.com/w320/kw.png", "continent": "Ázsia" },
+        { "lat": 25.0343, "lng": -77.3963, "title": "Bahamas", image: "https://flagcdn.com/w320/bs.png", "continent": "Észak-Amerika" },
+        { "lat": -6, "lng": 35, "title": "Tanzania", image: "https://flagcdn.com/w320/tz.png", "continent": "Afrika" },
+        { "lat": 32, "lng": -5, "title": "Morocco", image: "https://flagcdn.com/w320/ma.png", "continent": "Afrika" },
+        { "lat": 42.5, "lng": 19.3, "title": "Montenegro", image: "https://flagcdn.com/w320/me.png", "continent": "Európa" },
+        { "lat": 39.5, "lng": -8, "title": "Portugal", image: "https://flagcdn.com/w320/pt.png", "continent": "Európa" },
+        { "lat": 49.75, "lng": 6.16666666, "title": "Luxembourg", image: "https://flagcdn.com/w320/lu.png", "continent": "Európa" },
+        { "lat": 44, "lng": 18, "title": "Bosnia and Herzegovina", image: "https://flagcdn.com/w320/ba.png", "continent": "Európa" },
+        { "lat": 59, "lng": 26, "title": "Estonia", image: "https://flagcdn.com/w320/ee.png", "continent": "Európa" },
+        { "lat": 38, "lng": -97, "title": "United States", image: "https://flagcdn.com/w320/us.png", "continent": "Észak-Amerika" },
+        { "lat": 53, "lng": -8, "title": "Ireland", image: "https://flagcdn.com/w320/ie.png", "continent": "Európa" },
+        { "lat": 21, "lng": 57, "title": "Oman", image: "https://flagcdn.com/w320/om.png", "continent": "Ázsia" },
+        { "lat": 49.75, "lng": 15.5, "title": "Czechia", image: "https://flagcdn.com/w320/cz.png", "continent": "Európa" },
+        { "lat": 60, "lng": -95, "title": "Canada", image: "https://flagcdn.com/w320/ca.png", "continent": "Észak-Amerika" },
+        { "lat": -5, "lng": 120, "title": "Indonesia", image: "https://flagcdn.com/w320/id.png", "continent": "Ázsia" },
+        { "lat": 31.9, "lng": 35.2, "title": "Palestine", image: "https://flagcdn.com/w320/ps.png", "continent": "Ázsia" },
+        { "lat": 35, "lng": 33, "title": "Cyprus", image: "https://flagcdn.com/w320/cy.png", "continent": "Európa" },
+        { "lat": 48.66666666, "lng": 19.5, "title": "Slovakia", image: "https://flagcdn.com/w320/sk.png", "continent": "Európa" },
+        { "lat": 46.11666666, "lng": 14.81666666, "title": "Slovenia", image: "https://flagcdn.com/w320/si.png", "continent": "Európa" },
+        { "lat": 51, "lng": 9, "title": "Germany", image: "https://flagcdn.com/w320/de.png", "continent": "Európa" },
+        { "lat": 42.666667, "lng": 21.166667, "title": "Kosovo", image: "https://flagcdn.com/w320/xk.png", "continent": "Európa" },
+        { "lat": 7, "lng": 81, "title": "Sri Lanka", image: "https://flagcdn.com/w320/lk.png", "continent": "Ázsia" },
+        { "lat": 50.83333333, "lng": 4, "title": "Belgium", image: "https://flagcdn.com/w320/be.png", "continent": "Európa" },
+        { "lat": 31.97, "lng": 34.83, "title": "Israel", image: "https://flagcdn.com/w320/il.png", "continent": "Ázsia" },
+        { "lat": 56, "lng": 10, "title": "Denmark", image: "https://flagcdn.com/w320/dk.png", "continent": "Európa" },
+        { "lat": 36.13333333, "lng": -5.35, "title": "Gibraltar", image: "https://flagcdn.com/w320/gi.png", "continent": "Európa" },
+        { "lat": 43.76666666, "lng": 12.41666666, "title": "San Marino", image: "https://flagcdn.com/w320/sm.png", "continent": "Európa" },
+        { "lat": 39, "lng": 35, "title": "Turkey", image: "https://flagcdn.com/w320/tr.png", "continent": "Európa" },
+        { "lat": 62, "lng": 10, "title": "Norway", image: "https://flagcdn.com/w320/no.png", "continent": "Európa" },
+        { "lat": 49, "lng": 32, "title": "Ukraine", image: "https://flagcdn.com/w320/ua.png", "continent": "Európa" },
+        { "lat": 62, "lng": 15, "title": "Sweden", image: "https://flagcdn.com/w320/se.png", "continent": "Európa" },
+        { "lat": 40.5, "lng": 47.5, "title": "Azerbaijan", image: "https://flagcdn.com/w320/az.png", "continent": "Európa" },
+        { "lat": 27, "lng": 30, "title": "Egypt", image: "https://flagcdn.com/w320/eg.png", "continent": "Afrika" },
+        { "lat": 43, "lng": 25, "title": "Bulgaria", image: "https://flagcdn.com/w320/bg.png", "continent": "Európa" },
+        { "lat": 42.5, "lng": 1.5, "title": "Andorra", image: "https://flagcdn.com/w320/ad.png", "continent": "Európa" },
+        { "lat": 60, "lng": 100, "title": "Russia", image: "https://flagcdn.com/w320/ru.png", "continent": "Ázsia" },
+        { "lat": 41.9, "lng": 12.45, "title": "Vatican City", image: "https://flagcdn.com/w320/va.png", "continent": "Európa" },
+        { "lat": 45.16666666, "lng": 15.5, "title": "Croatia", image: "https://flagcdn.com/w320/hr.png", "continent": "Európa" },
+        { "lat": 42, "lng": 43.5, "title": "Georgia", image: "https://flagcdn.com/w320/ge.png", "continent": "Európa" },
+        { "lat": 35, "lng": 105, "title": "China", image: "https://flagcdn.com/w320/cn.png", "continent": "Ázsia" },
+        { "lat": 42.83333333, "lng": 12.83333333, "title": "Italy", image: "https://flagcdn.com/w320/it.png", "continent": "Európa" },
+        { "lat": 47, "lng": 8, "title": "Switzerland", image: "https://flagcdn.com/w320/ch.png", "continent": "Európa" },
+        { "lat": 64, "lng": 26, "title": "Finland", image: "https://flagcdn.com/w320/fi.png", "continent": "Európa" },
+        { "lat": 35.9375, "lng": 14.3754, "title": "Malta", image: "https://flagcdn.com/w320/mt.png", "continent": "Európa" },
+        { "lat": 31, "lng": 36, "title": "Jordan", image: "https://flagcdn.com/w320/jo.png", "continent": "Ázsia" },
+        { "lat": 52, "lng": 20, "title": "Poland", image: "https://flagcdn.com/w320/pl.png", "continent": "Európa" },
+        { "lat": 41.83333333, "lng": 22, "title": "North Macedonia", image: "https://flagcdn.com/w320/mk.png", "continent": "Európa" },
+        { "lat": 46, "lng": 2, "title": "France", image: "https://flagcdn.com/w320/fr.png", "continent": "Európa" },
+        { "lat": 40, "lng": -4, "title": "Spain", image: "https://flagcdn.com/w320/es.png", "continent": "Európa" },
+        { "lat": 23, "lng": -102, "title": "Mexico", image: "https://flagcdn.com/w320/mx.png", "continent": "Észak-Amerika" },
+        { "lat": 44, "lng": 21, "title": "Serbia", image: "https://flagcdn.com/w320/rs.png", "continent": "Európa" },
+        { "lat": 46, "lng": 25, "title": "Romania", image: "https://flagcdn.com/w320/ro.png", "continent": "Európa" },
+        { "lat": 47, "lng": 20, "title": "Hungary", image: "https://flagcdn.com/w320/hu.png", "continent": "Európa" },
+        { "lat": 41, "lng": 20, "title": "Albania", image: "https://flagcdn.com/w320/al.png", "continent": "Európa" },
+        { "lat": 47.26666666, "lng": 9.53333333, "title": "Liechtenstein", image: "https://flagcdn.com/w320/li.png", "continent": "Európa" },
+        { "lat": 19.3133, "lng": -81.2546, "title": "Cayman Islands", image: "https://flagcdn.com/w320/ky.png", "continent": "Észak-Amerika" },
+        { "lat": 47.33333333, "lng": 13.33333333, "title": "Austria", image: "https://flagcdn.com/w320/at.png", "continent": "Európa" },
+        { "lat": 52.5, "lng": 5.75, "title": "Netherlands", image: "https://flagcdn.com/w320/nl.png", "continent": "Európa" },
+        { "lat": 1.36666666, "lng": 103.8, "title": "Singapore", image: "https://flagcdn.com/w320/sg.png", "continent": "Ázsia" },
+        { "lat": 24, "lng": 54, "title": "United Arab Emirates", image: "https://flagcdn.com/w320/ae.png", "continent": "Ázsia" }
+      ];
+
       locations.forEach(loc => {
         const marker = L.marker([loc.lat, loc.lng], {
           icon: L.icon({
-            iconUrl: 'https://211937d430.clvaw-cdnwnd.com/e3d7e362b15bdf93a93a278d7365f904/200001202-e9f69e9f6c/450/gps2.webp?ph=211937d430', // Custom marker icon
-            iconSize: [25, 25] // Size of the icon
+            iconUrl: 'https://211937d430.clvaw-cdnwnd.com/e3d7e362b15bdf93a93a278d7365f904/200001202-e9f69e9f6c/450/gps2.webp?ph=211937d430',
+            iconSize: [25, 25]
           })
         });
 
-        let popupContent = `<strong>${loc.title}</strong>`;
+        let popupContent = `<strong>${loc.title}</strong><br><em>${loc.continent}</em>`;
         if (loc.image) {
-          // Check if the image URL is a Street View link (using similar logic as in jelölő minta96)
-          // In "jelölő minta96", the check was loc.image.includes("google.com/maps")
-          // You might need to adjust this condition based on the exact format of your Street View URLs.
-          // For demonstration, I'm using a simplified check.
-          if (loc.image.includes("google.com/maps")) { // Modified condition
-            popupContent += `
-              <div class="streetview-container" onclick="window.open('${loc.image}', '_blank');event.stopPropagation();">
-                  <div class="streetview-icon"></div>
-                  <div class="streetview-text">Utcakép,<br>kattints ide!</div>
-              </div>
-            `;
-          } else {
-            popupContent += `<br><img src="${loc.image}" width="120" style="margin-top:4px; cursor:pointer;" onclick="showModal('${loc.image}');event.stopPropagation();" />`;
-          }
+          popupContent += `<br><img src="${loc.image}" width="120" style="margin-top:4px; cursor:pointer;" onclick="showModal('${loc.image}')" />`;
         }
         marker.bindPopup(popupContent);
         markers.addLayer(marker);
@@ -629,15 +122,11 @@
       map.addLayer(markers);
 
       function showModal(src) {
-        const modal = document.getElementById("imageModal");
-        const img = document.getElementById("modalImg");
-        img.src = src;
-        modal.style.display = "flex";
+        document.getElementById("modalImg").src = src;
+        document.getElementById("imageModal").style.display = "flex";
       }
 
-      document.getElementById("imageModal").addEventListener("click", () => {
-        document.getElementById("imageModal").style.display = "none";
-      });
+      document.getElementById("imageModal").onclick = function() { this.style.display = "none"; };
     </script>
   </body>
 </html>
