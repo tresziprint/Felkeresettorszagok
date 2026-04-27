@@ -1,48 +1,50 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-    <title>Utazásaim - Világjáró Verzió</title>
+    <title>Utazásaim - Zászlókkal és Zoommal</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; }
-        
-        /* Navigáció - most már több gombbal */
         nav { background: #2c3e50; color: white; padding: 10px 20px; display: flex; gap: 8px; align-items: center; z-index: 1001; flex-wrap: wrap; }
-        nav button { background: #34495e; border: none; color: white; padding: 8px 12px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 13px; transition: 0.2s; }
+        nav button { background: #34495e; border: none; color: white; padding: 8px 12px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 13px; }
         nav button:hover { background: #1abc9c; }
-        nav .active-btn { background: #1abc9c; }
 
         .main-content { display: flex; flex: 1; overflow: hidden; }
         #sidebar { width: 380px; background: #fff; border-right: 1px solid #ddd; overflow-y: auto; padding: 10px; }
         
-        /* Harmonika stílus */
         .country-group { margin-bottom: 5px; border: 1px solid #ddd; border-radius: 5px; overflow: hidden; }
-        .country-header { background: #27ae60; color: white; padding: 12px; cursor: pointer; font-weight: bold; display: flex; justify-content: space-between; }
+        
+        /* Módosított fejléc a zászlóhoz */
+        .country-header { 
+            background: #27ae60; color: white; padding: 12px; cursor: pointer; 
+            font-weight: bold; display: flex; justify-content: space-between; align-items: center; 
+        }
+        .country-header .left-side { display: flex; align-items: center; gap: 10px; }
+        .country-flag { width: 25px; height: auto; border-radius: 2px; border: 1px solid rgba(255,255,255,0.3); }
+
         .location-list { display: none; background: #f9f9f9; }
         .country-group.active .location-list { display: block; }
         
         .location-card { background: white; border-bottom: 1px solid #eee; padding: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px; }
         .location-card:hover { background: #f1f1f1; }
-        .location-card img { width: 40px; height: 40px; border-radius: 3px; object-fit: cover; }
+        .location-card img { width: 45px; height: 45px; border-radius: 3px; object-fit: cover; }
         
         #map { flex: 1; z-index: 1; }
         #imageModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; z-index: 10000; }
         #modalImg { max-width: 90%; max-height: 90%; border: 2px solid white; }
-        
-        .empty-msg { padding: 20px; text-align: center; color: #7f8c8d; font-style: italic; }
     </style>
 </head>
 <body>
 
 <nav>
-    <button onclick="filterByContinent('Összes')">🌍 Összes</button>
+   <button onclick="filterByContinent('Összes')">🌍 Összes</button>
     <button onclick="filterByContinent('Európa')">🇪🇺 Európa</button>
     <button onclick="filterByContinent('Ázsia')">🌏 Ázsia</button>
     <button onclick="filterByContinent('Afrika')">🌍 Afrika</button>
     <button onclick="filterByContinent('Észak-Amerika')">🗽 Észak-Amerika</button>
-    </nav>
+</nav>
 
 <div class="main-content">
     <aside id="sidebar"><div id="list-content"></div></aside>
@@ -53,7 +55,7 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    // IDE MÁSOLD BE A BŐVÍTETT JSON TARTALMÁT!
+    // Itt a te bővített adatbázisod helye
     const rawData = [
         {
     "lat": -8.370537,
@@ -1132,7 +1134,7 @@
     "lng": 7.253377972222222,
     "title": "Hol havazott, hol meg sütött a nap...",
     "image": "https://lh3.googleusercontent.com/d/16NAhMORZxSDbSx_nm153vI-XDcyKD6Dg",
-    "country": "hol meg sütött a nap...",
+    "country": "Norvégia",
     "continent": "Európa"
   },
   {
@@ -4651,15 +4653,19 @@
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
     const markerGroup = L.layerGroup().addTo(map);
 
+    // Segédfüggvény a zászló kódhoz (Ha nincs countryCode a JSON-ban, megpróbáljuk kitalálni)
+    function getFlagUrl(country, code) {
+        if(code) return `https://flagcdn.com/w40/${code.toLowerCase()}.png`;
+        // Néhány alapértelmezett kód, ha elfelejtenéd beírni
+        const manualCodes = {"Magyarország":"hu", "Indonézia":"id", "Románia":"ro", "Norvégia":"no", "USA":"us", "Kanada":"ca"};
+        const c = manualCodes[country] || "un"; // "un" az Egyesült Nemzetek zászlója, ha nincs meg
+        return `https://flagcdn.com/w40/${c}.png`;
+    }
+
     function renderView(data) {
         const container = document.getElementById('list-content');
         container.innerHTML = '';
         markerGroup.clearLayers();
-
-        if (data.length === 0) {
-            container.innerHTML = '<div class="empty-msg">Ezen a földrészen még nincsenek rögzített élményeid.</div>';
-            return;
-        }
 
         const grouped = data.reduce((acc, obj) => {
             if (!acc[obj.country]) acc[obj.country] = [];
@@ -4670,19 +4676,44 @@
         for (const country in grouped) {
             const groupDiv = document.createElement('div');
             groupDiv.className = 'country-group';
+
+            const countryCode = grouped[country][0].countryCode;
+            const flagUrl = getFlagUrl(country, countryCode);
+
             const header = document.createElement('div');
             header.className = 'country-header';
-            header.innerHTML = `<span>📍 ${country}</span><span>▼</span>`;
+            header.innerHTML = `
+                <div class="left-side">
+                    <img src="${flagUrl}" class="country-flag">
+                    <span>${country}</span>
+                </div>
+                <span>▼</span>
+            `;
+
             const listWrapper = document.createElement('div');
             listWrapper.className = 'location-list';
 
-            header.onclick = () => groupDiv.classList.toggle('active');
+            // MÓDOSÍTOTT KATTINTÁS: Országra zoomolás
+            header.onclick = () => {
+                const isActive = groupDiv.classList.contains('active');
+                
+                // Összes többit bezárjuk (opcionális, de így tisztább)
+                document.querySelectorAll('.country-group').forEach(g => g.classList.remove('active'));
+                
+                if (!isActive) {
+                    groupDiv.classList.add('active');
+                    // Kiszámoljuk az ország pontjainak közepét és odazoomolunk
+                    const points = grouped[country].map(p => [p.lat, p.lng]);
+                    const bounds = L.latLngBounds(points);
+                    map.flyToBounds(bounds, { padding: [50, 50], maxZoom: 8 });
+                }
+            };
 
             grouped[country].forEach(item => {
                 const popupHTML = `<div style="text-align:center"><b>${item.title}</b><br><img src="${item.image}" width="200" style="cursor:pointer;margin-top:5px" onclick="showBigImage('${item.image}')"></div>`;
                 const card = document.createElement('div');
                 card.className = 'location-card';
-                card.innerHTML = `<img src="${item.image}" onerror="this.src='https://via.placeholder.com/40'"><span>${item.title}</span>`;
+                card.innerHTML = `<img src="${item.image}" onerror="this.src='https://via.placeholder.com/45'"><span>${item.title}</span>`;
                 
                 card.onclick = (e) => {
                     e.stopPropagation();
@@ -4701,17 +4732,12 @@
     }
 
     function filterByContinent(cont) {
-        let filtered;
-        if (cont === 'Összes') {
-            filtered = rawData;
-            map.flyTo([20, 0], 2);
-        } else {
-            filtered = rawData.filter(d => d.continent === cont);
-            if (filtered.length > 0) {
-                map.flyTo([filtered[0].lat, filtered[0].lng], 4);
-            }
-        }
+        let filtered = cont === 'Összes' ? rawData : rawData.filter(d => d.continent === cont);
         renderView(filtered);
+        if (filtered.length > 0) {
+            const bounds = L.latLngBounds(filtered.map(p => [p.lat, p.lng]));
+            map.flyToBounds(bounds, { padding: [30, 30] });
+        }
     }
 
     function showBigImage(src) {
@@ -4719,6 +4745,700 @@
         document.getElementById("imageModal").style.display = "flex";
     }
 
+    renderView(rawData);
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="hu">
+<head>
+    <title>Utazásaim - Dinamikus Szűrés</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; }
+        nav { background: #2c3e50; color: white; padding: 10px 20px; display: flex; gap: 10px; align-items: center; z-index: 1001; }
+        nav button { background: #34495e; border: none; color: white; padding: 8px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        nav button:hover { background: #1abc9c; }
+        .main-content { display: flex; flex: 1; overflow: hidden; }
+        #sidebar { width: 380px; background: #fff; border-right: 1px solid #ddd; overflow-y: auto; padding: 10px; }
+        .country-group { margin-bottom: 5px; border: 1px solid #ddd; border-radius: 5px; overflow: hidden; }
+        .country-header { background: #27ae60; color: white; padding: 12px; cursor: pointer; font-weight: bold; display: flex; justify-content: space-between; }
+        .location-list { display: none; background: #f9f9f9; }
+        .country-group.active .location-list { display: block; }
+        .location-card { background: white; border-bottom: 1px solid #eee; padding: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+        .location-card:hover { background: #f1f1f1; }
+        .location-card img { width: 40px; height: 40px; border-radius: 3px; object-fit: cover; }
+        #map { flex: 1; z-index: 1; }
+        #imageModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; z-index: 10000; }
+        #modalImg { max-width: 90%; max-height: 90%; border: 2px solid white; }
+    </style>
+</head>
+<body>
+
+<nav id="nav-bar">
+    <button onclick="filterByContinent('Összes')">Összes ország</button>
+    <button onclick="filterByContinent('Európa')">Európa</button>
+    <button onclick="filterByContinent('Ázsia')">Ázsia</button>
+    </nav>
+
+<div class="main-content">
+    <aside id="sidebar"><div id="list-content"></div></aside>
+    <div id="map"></div>
+</div>
+
+<div id="imageModal" onclick="this.style.display='none'"><img id="modalImg" src="" /></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // ADATOK (Bővítve Romániával)
+    const rawData = [
+       {
+    "lat": -8.370537,
+    "lng": 115.13555997222223,
+    "title": "063 - IMG_20230719_122954.jpg",
+    "image": "https://lh3.googleusercontent.com/d/1YLYSiIXupEH3npfORXkOhx8DzfNfuRE0",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.366797972222223,
+    "lng": 115.13019299999999,
+    "title": "066 - IMG_20230719_125515.jpg",
+    "image": "https://lh3.googleusercontent.com/d/1YeHS_mx00UGQSmCmanRAw5Ri9RAhEj6E",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.294734972222223,
+    "lng": 115.17343497222222,
+    "title": "085 - IMG_20230719_162706.jpg",
+    "image": "https://lh3.googleusercontent.com/d/1feLsK8g0_AO_EWZjZiHgk_Dg33y9qigh",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": 41.26661415837101,
+    "lng": 28.73632907867432,
+    "title": "Istanbul Airport, B16 Terminal, Istanbul, 34277, Törökország",
+    "image": "https://lh3.googleusercontent.com/d/1U6MkYFxVOvkuJLQ3Dkf0jHmTImV1m5x2",
+    "country": "Törökország",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": 1.339180113557158,
+    "lng": 103.98364305496216,
+    "title": "Changi Airport Terminal 4, Szingapúr, 819665, Szingapúr",
+    "image": "https://lh3.googleusercontent.com/d/13IFCOOgtODSMU07dgw6BF3C4IfUkzbAn",
+    "country": "Szingapúr",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -6.118169027262914,
+    "lng": 106.66535854339601,
+    "title": "Soekarno-Hatta repülőtér, Jakarta, Jawa, 19120, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1tk7yE_CF_nsQ8hpZ9bo3nGc1I2aht8hX",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.748305100669981,
+    "lng": 115.16834735870363,
+    "title": "Ngurah Rai International Airport, Bali, 80362, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1y7P1g-A8DBAKU6RLyj12CRgMa3b4boRs",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.692879090020796,
+    "lng": 115.26676297187807,
+    "title": "Sanur, Denpasar, Bali, Lesser Sunda Islands, 80030, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1RZmMq_UfiTyPUwo3X6TkIZtJwwB65vsL",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.694957779987005,
+    "lng": 115.26301860809328,
+    "title": "Artasedana Sanur, Kedvenc boltunk, Bali, Lesser Sunda Islands, 80223, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/17sd2B5K3F8TXxfibjnjenDGnmFdf6kSo",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.695896368360787,
+    "lng": 115.26378571987154,
+    "title": "I Love Bali Center - Szálláshely, Denpasar, Bali, 80030, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1hI0YiS7dyqkkmkx7kmJhBrGJ223HJFpk",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.697068274836987,
+    "lng": 115.26354968547822,
+    "title": "White Orchid Sanur Kajázó, Denpasar, Bali, Lesser Sunda Islands, 80030, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1bO6tTfquxDyMWTEjGMDzsJFy5tAvVMck",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.669572580879542,
+    "lng": 115.26080310344696,
+    "title": "Kikötő, Denpasar, Bali, Lesser Sunda Islands, 80227, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1otRqTIh2oATPbNMOGJkpEziDrxB9sugq",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.493457256723126,
+    "lng": 115.18439769744874,
+    "title": "Chocolate factory POD, Baturiti, Badung, Bali, 82191, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1GQ_fnCIDja15y9b-mvhiCjc4bReWDFo4",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.369647470824434,
+    "lng": 115.13303875923158,
+    "title": "Jatiluwih - Rizs terasz, Bali, Lesser Sunda Islands, 82152, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1nkqwb2axBdDasPNlewklC_nIY0XFzqkC",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.275219471756353,
+    "lng": 115.1668292284012,
+    "title": "Lake Beratan Temple, Bedugul, Tabanan, Bali, Lesser Sunda Islands, 81162, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/12ng2n0j93VyiQnG0ZLvnmJFaB045Kk4g",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.274157757443469,
+    "lng": 115.16701698303224,
+    "title": "Jalan Akasia, Candikuning, Tabanan, Bali, Lesser Sunda Islands, 81162, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1U8NxsEHqvjx2nco4tIgZ7VO2dvWzi0P4",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.27380208250887,
+    "lng": 115.16387343406679,
+    "title": "Cibet macska, Repülő kútya, Leguán, Bali, Lesser Sunda Islands, 81162, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1SvXD4CHt0T-v7eGMXMf2tszxg0JQKfcI",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.275325643030254,
+    "lng": 115.1661640405655,
+    "title": "Pura Penataran Agung, Jalan Akasia, Candikuning, Tabanan, Bali, Lesser Sunda Islands, 81162, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1Z7FTnLYTddhhNrGm-uQwc1BtJ-NfHUTg",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.275904275970145,
+    "lng": 115.16583681106569,
+    "title": "Pura Prajapati, Jalan Perean Tengah, Luwus, Bedugul, Tabanan, Bali, Lesser Sunda Islands, 81162, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/12JcvZ33uVrkGOaJJYdD6YinNX9ORmoLY",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.277263263752507,
+    "lng": 115.35140275955202,
+    "title": "Batur Sari Buffet, Kilátó, Telemba, Batur, Bangli, Bali, Lesser Sunda Islands, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1EgviqvUamDODsYgdsRp5nYeyhITL4HAN",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.370257808090638,
+    "lng": 115.3397297859192,
+    "title": "Cofee Nature, Cibet kávé, BAS De ATAYANA, Bangli, Bali, Lesser Sunda Islands, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1Ae7ZzSxcxEXyhI2VJBrsH2LRzIk7xq3P",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.506784654744138,
+    "lng": 115.26271283626558,
+    "title": "Királyi palota, Puri Saren Agung Ubud Palace, Ubud, Bali, Lesser Sunda Islands, 80571, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1muGSx7VSZRjacZE-t0V9MwWI5ic7wgu7",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.523655456887498,
+    "lng": 115.28674006462099,
+    "title": "Elefántbarlang, Goa Gajah, Bedulu, Gianyar, Bali, Lesser Sunda Islands, 80515, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/18gliYYs81PIDOW8dktjZOwBWtMtYn9-1",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.50872642644178,
+    "lng": 115.5648583173752,
+    "title": "Pandai Candi Dasa, Candidasa, Bali, Lesser Sunda Islands, 80851, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1WzEz3btB4s0JrH6ARQ7N5JCf7SV-Z5Se",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.391449185701562,
+    "lng": 115.63092648983003,
+    "title": "Lempuyang Nagy Penataran temploma, Pura Penataran Agung Lempuyang, Bali, Lesser Sunda Islands, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1njm0RXivPMNVZm2jsldYN3HONDZ3k2tW",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.39115730129413,
+    "lng": 115.62929570674896,
+    "title": "Maha Kencana Paradise - Fotózkodás, Karangasem, Bali, Lesser Sunda Islands, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1QUehVpSlt5D0qupnMiJuZcstkVVcKzmX",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.682612737876516,
+    "lng": 115.43301165103914,
+    "title": "Villa Mutiara, Kikötő, Musa Lembongan sziget, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1skPBov5O-FKrr_XTl17ivsWoPb5S1Zvs",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.69372223351456,
+    "lng": 115.45084834098817,
+    "title": "Yellow Bridge, Lembongan, Lesser Sunda Islands, 80372, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1RfJX5RCuZyIwozhEFjY81vZYgUiz7_5O",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.706353250343824,
+    "lng": 115.44028580188753,
+    "title": "Blue Lagoon Secret Villas, Szálláshely, Lembongan, Nusa Ceningan, 80372, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1oViZJSkgOuLEemCcVZ7cjqQOo18P83gt",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.705801779077637,
+    "lng": 115.43902516365053,
+    "title": "Tengerpart, 80372, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1fRTcnJzRiBD_ZJz1PQCp03Vh8xe2u-lD",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.706872905216208,
+    "lng": 115.43838143348695,
+    "title": "Secret Point Huts Restaurant, Secret Beach Road, Lembongan, Nusa Penida Subdistrict, Klungkung Regency, Bali, Lesser Sunda Islands, 80372, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1DdQRdJidGD2wlruHcl-FX6z39aMvg81u",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.706469907622893,
+    "lng": 115.43854773044588,
+    "title": "Secret Beach, 80372, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1pqwoHQkrLKIC3XSUHBXlduUC6cnSdRRP",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.707753135291993,
+    "lng": 115.43925046920778,
+    "title": "Temple Path Steps - Étterem, 80372, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1vWZvPmXaWPTv5xWGLBmWq742SDqUYkrz",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.692534408172046,
+    "lng": 115.47454833984375,
+    "title": "AMARTA Penida - Étterem, Klungkung Regency, Bali, Lesser Sunda Islands, 80372, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/18IdALY5vhNl2e7rjoMIPE_TNpqeuM_v9",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.715505433597379,
+    "lng": 115.45905053615571,
+    "title": "Crystal Bay Beach, Nusa Penida, Indonezia",
+    "image": "https://lh3.googleusercontent.com/d/10D0q4Vwb7jr9hngJPBP5qFsFfWLDPDVm",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.733703083248681,
+    "lng": 115.44877767562868,
+    "title": "Angel's Billabong, Nusa Penida, 80372, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1HGFvkHWWBw-aaVuh8OI5jfGi8gCoax_c",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.733109234560814,
+    "lng": 115.4504406452179,
+    "title": "Jalan Crystal Bay, Sakti, Nusa Penida Subdistrict, Klungkung Regency, Bali, Lesser Sunda Islands, 80372, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1HuLau7q9yeeFGYLXSF_RMJVUIoa-CCZ-",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.586855975577892,
+    "lng": 115.26895701885225,
+    "title": "YAN YAN Silver Ékszerüzlet és üzem, Sukawati, Bali, 80582, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/16zMLOHTd0pAuHH2qceNlH4AIo_g4g_Fv",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.433637439004116,
+    "lng": 115.27945518493652,
+    "title": "Tegallalang Rice Terraces, Jalan I Wayan Lunga, Pujung Kelod, Pujung, Gianyar, Bali, Lesser Sunda Islands, 80561, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1omrdKfwKCRwyhALwVHzwtNZTuCa00CNL",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.507373553758029,
+    "lng": 115.26314198970796,
+    "title": "Piac - Bazár, Ubud, 80571, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1n7PX7qvuinH-4jHuZmkIy4zhyHQwdNyA",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.522345078464197,
+    "lng": 115.28488934040071,
+    "title": "Lanaya vízesés, Bali, Lesser Sunda Islands, 80515, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/15Bu86vFpgdJCD56oRyzKltdx5hm3sQ0C",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.52259442207292,
+    "lng": 115.28457820415498,
+    "title": "Layana Warung Étterem, Ropógós kacsa, 80515, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1aFjsfg-9JPcOXdZA8WTklfEy1l7ALdXp",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.412352845418786,
+    "lng": 115.58709919452669,
+    "title": "Taman Tirtagangga, Vizipalota, 80813, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1YDoHjqGiTSyDjdGtn1OOuhcQ7ARA7JX2",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.474749308123634,
+    "lng": 115.56666612625122,
+    "title": "Tenganan Pegringsingan,Ősi falu, Harci kakasok, 80871, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1j0YzAObZjNMJmzfRHH84XWudRWU3UCu1",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.411976069445924,
+    "lng": 115.58750152587892,
+    "title": "Tirtagangga, Étterem, Bali, Lesser Sunda Islands, 80813, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1ll5dbtokhYrFKASCb65zX5YSw4rpiGsn",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.51840330577293,
+    "lng": 115.25901138782503,
+    "title": "Majomerdő, Ubud, Bali, 80571, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/11MwnOBX3dD91tO39GtxEMNDOkQOpH47Q",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.74404226148188,
+    "lng": 115.17014980316164,
+    "title": "Ngurah Rai International Airport, Gang Cempaka, Tuban, Denpasar, Badung, Bali, Lesser Sunda Islands, 80362, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1UpVgq7Qy5zj1exf9bdXpzkoa5XpWyTuJ",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+  {
+    "lat": -8.69169656481782,
+    "lng": 115.46742439270021,
+    "title": "Lembongan, Nusa Penida Subdistrict, Klungkung Regency, Bali, Lesser Sunda Islands, 80372, Indonézia",
+    "image": "https://lh3.googleusercontent.com/d/1RHdv2G2gXwGWoHZN1jX1zan6fQ5vZgrS",
+    "country": "Indonézia",
+    "continent": "Ázsia"
+  },
+{
+    "lat": 46.424571,
+    "lng": 26.006175972222223,
+    "title": "Szellő-tetői kopjafa, DC135, Ágas, Bákó megye, Románia",
+    "image": "https://lh3.googleusercontent.com/d/13AnQNnS_kRGuHPtGPLxVOBtDMfBK20EA",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.439091999999995,
+    "lng": 25.986777,
+    "title": "Attila",
+    "image": "https://lh3.googleusercontent.com/d/12RYDzY0zhKl34fmsypQSWYjVvqDcM83d",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.43233397222222,
+    "lng": 25.770056,
+    "title": "Amádé panzió, Madéfalva, Hargita megye, 537295, Románia",
+    "image": "https://lh3.googleusercontent.com/d/1IyYKcLgx2IkxErvngGXYGWGxBWx3QPSj",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.44274097222222,
+    "lng": 25.895462972222223,
+    "title": "Ott szalad a róka!",
+    "image": "https://lh3.googleusercontent.com/d/1P1NIpd30Olgx12ilbt1GCzXLwjOTRGU0",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.446191999999996,
+    "lng": 25.890575972222223,
+    "title": "Csíkszépvíz, A tározó, Hargita megye, 537115, Románia",
+    "image": "https://lh3.googleusercontent.com/d/1e5qCRXY3uS-xr8UsWA5XC2ScFCz5YYJF",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.353119972222224,
+    "lng": 26.051034,
+    "title": "Egerszék, Csíkszentgyörgy, Hargita megye, 537047, Románia",
+    "image": "https://lh3.googleusercontent.com/d/1115AbHu0xRz8utC2A0tq1Fg_JPECamh1",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.419624999999996,
+    "lng": 25.997132,
+    "title": "Bírkanyáj, Wood stealers road, Csíkpálfalva, Hargita megye, 537117, Románia",
+    "image": "https://lh3.googleusercontent.com/d/1DXMYg1vV7Wgjq6ve1u0a5GSCEfNv7dKy",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.352983972222226,
+    "lng": 26.050958972222222,
+    "title": "Borókázgatunk, Egerszék, Csíkszentgyörgy, Hargita megye, 537047, Románia",
+    "image": "https://lh3.googleusercontent.com/d/1juWyYcLg2wxm8q_DNyhaMsVOjXQ89JTG",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.335765,
+    "lng": 26.061319,
+    "title": "Egerszék, Csíkszentgyörgy, Hargita megye, 537047, Románia",
+    "image": "https://lh3.googleusercontent.com/d/1UsA4Qix7qjSZUwGfAzbhe6gOWWnoPc35",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.42155197222222,
+    "lng": 26.000631972222223,
+    "title": "Wood stealers road, Csíkpálfalva, Hargita megye, 537117, Románia",
+    "image": "https://lh3.googleusercontent.com/d/17m5B5xtTqLOUQMpAYExvaR4k2WiTxJ5c",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.404879,
+    "lng": 26.033245972222222,
+    "title": " Ágas, Bákó megye, 607007, Románia",
+    "image": "https://lh3.googleusercontent.com/d/16pzVt1Bf-wRnZtHvgfVaja7yDzEQjzTN",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.3355,
+    "lng": 26.065297,
+    "title": "Még kerítést is kellet bontani!!  ---- Egerszék, Csíkszentgyörgy, Hargita megye, 537047, Románia",
+    "image": "https://lh3.googleusercontent.com/d/1NR0GMqt-DTo78EaQZJ7B2FHD8bdJ0KKA",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.339078972222225,
+    "lng": 26.067395972222222,
+    "title": "Helyi ebéd egy családnál... ---- Egerszék, Csíkszentgyörgy, Hargita megye, 537047, Románia",
+    "image": "https://lh3.googleusercontent.com/d/1EJiog4fQOV2tbZGJGoqYtzlLD8d20zSG",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.40562897222222,
+    "lng": 26.028969999999997,
+    "title": "Elakadtunk, Csíkszentgyörgy, Hargita megye, Románia",
+    "image": "https://lh3.googleusercontent.com/d/14bii8ItCdEWuKgp-c0PcEEjwYLqQ8OUz",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.335728,
+    "lng": 26.064088,
+    "title": "Ez meredek volt!  --- Egerszék, Csíkszentgyörgy, Hargita megye, 537047, Románia",
+    "image": "https://lh3.googleusercontent.com/d/1aIku-3qmJ4mdxjiPGl2Bmgb4x4I3rqVP",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.111550972222226,
+    "lng": 25.909365972222222,
+    "title": "Medveles, Sepsibükszád, Kovászna megye, 527116, Románia",
+    "image": "https://lh3.googleusercontent.com/d/1OOYOIJCMeGIANrUW64TQHUGlsD1vYOYy",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.300672999999996,
+    "lng": 26.066414972222223,
+    "title": "Hegyi emberek, Csinód, Csíkszentgyörgy, Hargita megye, 537047, Románia",
+    "image": "https://lh3.googleusercontent.com/d/1Iy2xNJCSQxQRD06f5nrotWnyOxYZgUxR",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.272751972222224,
+    "lng": 26.042422972222223,
+    "title": "Lovak szabadon, Csíkszentmárton, Hargita megye, Románia",
+    "image": "https://lh3.googleusercontent.com/d/1mvRS8UwCjijXcvqLjiy9hfQ9BCgjBhmf",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.269534972222225,
+    "lng": 26.028341972222222,
+    "title": "Esztenád, Csíkszentmárton, Hargita megye, Románia",
+    "image": "https://lh3.googleusercontent.com/d/19Sc-G7dviiBcXAbkhQlSNbbffJ4HItZV",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.223365,
+    "lng": 26.016044972222222,
+    "title": "Egy magaslati pont, Csíkkozmás, Hargita megye, 537236, Románia",
+    "image": "https://lh3.googleusercontent.com/d/1QC0n1I-UllGNn_6zGMtcVeTD_UGAlJhf",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.288336,
+    "lng": 26.068514,
+    "title": "Hegyi kápolna, Csinód, Csíkszentgyörgy, Hargita megye, 537047, Románia",
+    "image": "https://lh3.googleusercontent.com/d/1T8km1BAD9DRJeZ5TFhJPWKuRSTWpKglL",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.424539250495066,
+    "lng": 26.00647330284119,
+    "title": "Szellő-tető, DC135, Ágas, Bákó megye, Románia",
+    "image": "https://lh3.googleusercontent.com/d/16VEgjj01BxtRMqwCBuGd0V2XMAQaZBzn",
+    "country": "Románia",
+    "continent": "Európa"
+  },
+  {
+    "lat": 46.42442831808118,
+    "lng": 26.006290912628174,
+    "title": "Szellő-tetői kopjafa, DC135, Ágas, Bákó megye, Románia",
+    "image": "https://lh3.googleusercontent.com/d/1eR1M2GIILcvTFVSAsc4fhdTmEAuTeDRl",
+    "country": "Románia",
+    "continent": "Európa"
+  }
+    ];
+
+    const map = L.map('map').setView([20, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    const markerGroup = L.layerGroup().addTo(map);
+
+    function renderView(data) {
+        const container = document.getElementById('list-content');
+        container.innerHTML = '';
+        markerGroup.clearLayers(); // Töröljük a régi jelölőket a térképről!
+
+        // Csoportosítás ország szerint
+        const grouped = data.reduce((acc, obj) => {
+            if (!acc[obj.country]) acc[obj.country] = [];
+            acc[obj.country].push(obj);
+            return acc;
+        }, {});
+
+        for (const country in grouped) {
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'country-group';
+
+            const header = document.createElement('div');
+            header.className = 'country-header';
+            header.innerHTML = `<span>📍 ${country}</span><span>▼</span>`;
+            
+            const listWrapper = document.createElement('div');
+            listWrapper.className = 'location-list';
+
+            header.onclick = () => groupDiv.classList.toggle('active');
+
+            grouped[country].forEach(item => {
+                const popupHTML = `<div style="text-align:center"><b>${item.title}</b><br><img src="${item.image}" width="200" style="cursor:pointer;margin-top:5px" onclick="showBigImage('${item.image}')"></div>`;
+
+                const card = document.createElement('div');
+                card.className = 'location-card';
+                card.innerHTML = `<img src="${item.image}" onerror="this.src='https://via.placeholder.com/40'"><span>${item.title}</span>`;
+                
+                card.onclick = (e) => {
+                    e.stopPropagation();
+                    map.flyTo([item.lat, item.lng], 15);
+                    L.popup().setLatLng([item.lat, item.lng]).setContent(popupHTML).openOn(map);
+                };
+                
+                listWrapper.appendChild(card);
+                
+                // Jelölő hozzáadása a térképhez
+                L.marker([item.lat, item.lng]).addTo(markerGroup).bindPopup(popupHTML);
+            });
+
+            groupDiv.appendChild(header);
+            groupDiv.appendChild(listWrapper);
+            container.appendChild(groupDiv);
+        }
+    }
+
+    // JAVÍTOTT SZŰRŐ FÜGGVÉNY
+    function filterByContinent(cont) {
+        let filtered;
+        if (cont === 'Összes') {
+            filtered = rawData;
+            map.flyTo([20, 0], 2);
+        } else {
+            filtered = rawData.filter(d => d.continent === cont);
+            if (filtered.length > 0) {
+                // Ha van találat, a térkép az első találatra repül
+                map.flyTo([filtered[0].lat, filtered[0].lng], 4);
+            }
+        }
+        renderView(filtered); // Újrarajzoljuk a listát ÉS a térképet is
+    }
+
+    function showBigImage(src) {
+        document.getElementById("modalImg").src = src;
+        document.getElementById("imageModal").style.display = "flex";
+    }
+
+    // Indításkor mindent mutatunk
     renderView(rawData);
 </script>
 </body>
