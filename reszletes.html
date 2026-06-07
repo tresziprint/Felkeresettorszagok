@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <title>Utazásaim - Világjáró</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; }
+        nav { background: #2c3e50; color: white; padding: 10px 20px; display: flex; gap: 8px; align-items: center; z-index: 1001; flex-wrap: wrap; }
+        nav button { background: #34495e; border: none; color: white; padding: 8px 12px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 13px; }
+        nav button:hover { background: #1abc9c; }
+        nav b { color: #1abc9c; margin-left: 4px; }
+        
+        #mainStreetViewBtn { padding: 5px; display: none; align-items: center; background: #4285f4; }
+        #mainStreetViewBtn:hover { background: #3367d6; }
+        #mainStreetViewBtn img { height: 25px; }
+
+        .main-content { display: flex; flex: 1; overflow: hidden; }
+        #sidebar { width: 380px; background: #fff; border-right: 1px solid #ddd; overflow-y: auto; padding: 10px; }
+        #map { flex: 1; z-index: 1; }
+        .country-group { margin-bottom: 5px; border: 1px solid #ddd; border-radius: 5px; overflow: hidden; }
+        .country-header { background: #27ae60; color: white; padding: 10px 12px; cursor: pointer; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .header-left { display: flex; align-items: center; gap: 10px; }
+        .flag-img { width: 25px; height: auto; border: 1px solid white; border-radius: 2px; }
+        .location-list { display: none; background: #f9f9f9; }
+        .country-group.active .location-list { display: block; }
+        
+        .location-card { background: white; border-bottom: 1px solid #eee; padding: 8px; display: flex; align-items: center; gap: 10px; }
+        .location-card:hover { background: #f1f1f1; }
+        .card-thumb { width: 50px; height: 40px; object-fit: cover; border-radius: 3px; cursor: pointer; border: 1px solid #ddd; transition: opacity 0.2s; }
+        .card-thumb:hover { opacity: 0.75; }
+        .card-text { font-size: 12px; font-weight: 600; color: #333; word-break: break-word; cursor: pointer; flex: 1; }
+        .card-text:hover { color: #1abc9c; }
+
+        .country-header b { color: #f1c40f; }
+        
+        .popup-container { text-align: center; max-width: 200px; }
+        .popup-title { font-weight: bold; margin-bottom: 5px; font-size: 13px; color: #2c3e50; }
+        .popup-img { width: 100%; height: 100px; object-fit: cover; border-radius: 4px; cursor: pointer; border: 1px solid #ddd; }
+        .popup-img:hover { opacity: 0.8; }
+        .popup-hint { font-size: 10px; color: #7f8c8d; margin-top: 3px; }
+
+        #imageModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.94); justify-content: center; align-items: center; z-index: 10000; }
+        .modal-scroll-wrapper { width: 100%; height: 100%; overflow-y: auto; display: flex; justify-content: center; align-items: center; padding: 40px 0; box-sizing: border-box; }
+        #modalImg { max-width: 85%; max-height: 85vh; border: 2px solid white; border-radius: 5px; object-fit: contain; cursor: pointer; }
+        
+        .nav-arrow { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: 2px solid rgba(255,255,255,0.4); font-size: 30px; width: 55px; height: 55px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; user-select: none; transition: all 0.2s; z-index: 10001; }
+        .nav-arrow:hover { background: #1abc9c; border-color: white; transform: translateY(-50%) scale(1.1); }
+        .arrow-left { left: 20px; }
+        .arrow-right { right: 20px; }
+        
+        #modalTitle { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; background: rgba(0,0,0,0.7); padding: 8px 16px; border-radius: 20px; font-size: 14px; max-width: 80%; text-align: center; font-weight: 500; pointer-events: none; z-index: 10001; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="index.html" style="text-decoration: none;"><button style="background: #e74c3c; color: white;">🏠 Főmenü</button></a>
+    <button id="btn-osszes">🌍 Összes</button>
+    <button id="btn-europa">🇪🇺 Európa</button>
+    <button id="btn-azsia">🌏 Ázsia</button>
+    <button id="btn-afrika">🌍 Afrika</button>
+    <button id="btn-enamerica">🗽 Észak-Amerika</button>
+    
+    <button id="mainStreetViewBtn" onclick="window.open(lastStreetViewUrl, '_blank')" title="Utcakép megnyitása">
+        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'><path d='M12 2c-4.42 0-8 3.58-8 8 0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z'/></svg>" alt="Street View">
+    </button>
+</nav>
+
+<div class="main-content">
+    <aside id="sidebar"><div id="list-content"></div></aside>
+    <div id="map"></div>
+</div>
+
+<div id="imageModal" onclick="closeModal(event)">
+    <div class="nav-arrow arrow-left" onclick="prevImage(event)">❮</div>
+    <div class="modal-scroll-wrapper" id="modalWrapper">
+        <img id="modalImg" src="" alt="Nagyított kép" onclick="forceCloseModal()" />
+    </div>
+    <div class="nav-arrow arrow-right" onclick="nextImage(event)">❯</div>
+    <div id="modalTitle"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    let lastStreetViewUrl = "";
+    let currentGalleryItems = []; 
+    let currentGalleryIndex = -1;  
+    
+    // Ide fogjuk beolvasni a külső fájlt
+    let rawData = [];
+
+    const countryFlags = {
+    "Albánia": "al", "Amerikai Egyesült Államok": "us", "Andorra": "ad", "Ausztria": "at",
+    "Azerbajdzsán": "az", "Bahama-szigetek": "bs", "Belgium": "be", "Bosznia-Hercegovina": "ba",
+    "Bulgária": "bg", "Ciprus": "cy", "Csehország": "cz", "Dánia": "dk", "Egyesült Arab Emírségek": "ae",
+    "Egyesült Királyság": "gb", "Egyiptom": "eg", "Észak-Macedónia": "mk", "Észtország": "ee",
+    "Finnország": "fi", "Franciaország": "fr", "Georgia (Grúzia)": "ge", "Gibraltár": "gi",
+    "Görögország": "gr", "Hollandia": "nl", "Horvátország": "hr", "Indonézia": "id",
+    "Írország": "ie", "Izland": "is", "Izrael": "il", "Jamaika": "jm", "Jamaica": "jm",
+    "Jordánia": "jo", "Kajmán-szigetek": "ky", "Kanada": "ca", "Kenya": "ke", "Kína": "cn",
+    "Koszovó": "xk", "Kuvait": "kw", "Lengyelország": "pl", "Lettország": "lv", "Liechtenstein": "li",
+    "Luxemburg": "lu", "Magyarország": "hu", "Málta": "mt", "Marokkó": "ma", "Mexikó": "mx",
+    "Monaco": "mc", "Montenegró": "me", "Németország": "de", "Norvégia": "no", "Olaszország": "it",
+    "Omán": "om", "Oroszország": "ru", "Örményország": "am", "Palesztina": "ps", "Portugália": "pt",
+    "Románia": "ro", "San Marino": "sm", "Spanyolország": "es", "Srí Lanka": "lk", "Svájc": "ch",
+    "Svédország": "se", "Szingapúr": "sg", "Szerbia": "rs", "Szlovákia": "sk", "Szlovénia": "si",
+    "Tanzánia": "tz", "Törökország": "tr", "Tunézia": "tn", "Ukrajna": "ua", "Vatikán": "va",
+    "Transznisztria": "custom_trans", "Észak-Ciprus": "custom_ncyp"
+    };
+
+    const map = L.map('map').setView([20, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    const markerGroup = L.layerGroup().addTo(map);
+
+    // --- KÜLSŐ DATA BETÖLTÉSE ---
+    fetch('adat.json')
+        .then(response => {
+            if (!response.ok) throw new Error("Nem sikerült beolvasni az adat.json fájlt.");
+            return response.json();
+        })
+        .then(data => {
+            rawData = data; // Eltároljuk a beolvasott tömböt
+            
+            // Gombok eseménykezelőinek dinamikus bekötése
+            document.getElementById('btn-osszes').onclick = () => filterByContinent('Összes');
+            document.getElementById('btn-europa').onclick = () => filterByContinent('Európa');
+            document.getElementById('btn-azsia').onclick = () => filterByContinent('Ázsia');
+            document.getElementById('btn-afrika').onclick = () => filterByContinent('Afrika');
+            document.getElementById('btn-enamerica').onclick = () => filterByContinent('Észak-Amerika');
+
+            // Program indítása az adatokkal
+            updateStats();
+            renderView(rawData);
+        })
+        .catch(err => {
+            console.error("Hiba történt:", err);
+            alert("Hiba az adatok betöltésekor! Ellenőrizd, hogy az adat.json a html mellett van-e.");
+        });
+
+    function updateStats() {
+        const total = rawData.length;
+        document.getElementById('btn-osszes').innerHTML = `🌍 Összes: <b>${total}</b>`;
+        ['Európa', 'Ázsia', 'Afrika', 'Észak-Amerika'].forEach(cont => {
+            const count = rawData.filter(d => d.continent === cont).length;
+            const id = cont === 'Észak-Amerika' ? 'btn-enamerica' : `btn-${cont.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
+            const btn = document.getElementById(id);
+            if(btn) {
+                const prefix = btn.innerText.split(':')[0];
+                btn.innerHTML = `${prefix}: <b>${count}</b>`;
+            }
+        });
+    }
+
+    function getPopupContent(item, countryItems) {
+        const itemIndex = countryItems.indexOf(item);
+        return `
+            <div class="popup-container">
+                <div class="popup-title">${item.title || 'Nincs megnevezés'}</div>
+                <img class="popup-img" src="${item.image}" onclick="startGalleryFromPopup('${item.country}', ${itemIndex})" title="Nagyítás" />
+                <div class="popup-hint">🔍 Kattints a képre a nagyításhoz</div>
+            </div>
+        `;
+    }
+
+    window.startGalleryFromPopup = function(countryName, index) {
+        const countryItems = rawData.filter(d => d.country === countryName);
+        currentGalleryItems = countryItems;
+        currentGalleryIndex = index;
+        showBigImage();
+    };
+
+    function renderView(data) {
+        markerGroup.clearLayers();
+        const container = document.getElementById('list-content');
+        container.innerHTML = '';
+
+        const groups = {};
+        data.forEach(item => {
+            if (!groups[item.country]) groups[item.country] = [];
+            groups[item.country].push(item);
+        });
+
+        const sortedCountries = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'hu'));
+
+        sortedCountries.forEach(country => {
+            const items = groups[country];
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'country-group';
+
+            const header = document.createElement('div');
+            header.className = 'country-header';
+            
+            const flagCode = countryFlags[country] || 'un';
+            const flagSrc = flagCode.startsWith('custom_') ? '' : `https://flagcdn.com/w20/${flagCode}.png`;
+            const flagHtml = flagSrc ? `<img class='flag-img' src='${flagSrc}' alt=''>` : `<span style='font-size:12px;'>🏳️</span>`;
+
+            header.innerHTML = `
+                <div class="header-left">
+                    ${flagHtml}
+                    <span>${country}</span>
+                </div>
+                <span><b>${items.length}</b> db</span>
+            `;
+
+            const listWrapper = document.createElement('div');
+            listWrapper.className = 'location-list';
+
+            header.onclick = () => {
+                const isActive = groupDiv.classList.contains('active');
+                document.querySelectorAll('.country-group').forEach(g => g.classList.remove('active'));
+                
+                if (!isActive) {
+                    groupDiv.classList.add('active');
+                    const countryBounds = L.latLngBounds(items.map(p => [p.lat, p.lng]));
+                    map.flyToBounds(countryBounds, { padding: [50, 50] });
+                }
+            };
+
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'location-card';
+                
+                const imgThumb = document.createElement('img');
+                imgThumb.className = 'card-thumb';
+                imgThumb.src = item.image;
+                
+                imgThumb.onclick = (e) => {
+                    e.stopPropagation();
+                    currentGalleryItems = items;
+                    currentGalleryIndex = items.indexOf(item);
+                    showBigImage();
+                };
+
+                const textDiv = document.createElement('div');
+                textDiv.className = 'card-text';
+                textDiv.textContent = item.title || 'Nincs megnevezés';
+
+                textDiv.onclick = (e) => {
+                    e.stopPropagation();
+                    const coords = [item.lat, item.lng];
+                    map.flyTo(coords, 14);
+                    
+                    L.popup({ autoPan: false })
+                        .setLatLng(coords)
+                        .setContent(getPopupContent(item, items))
+                        .openOn(map);
+                    
+                    if (item.image.includes('googleusercontent')) {
+                        lastStreetViewUrl = item.image;
+                        document.getElementById('mainStreetViewBtn').style.display = 'flex';
+                    } else {
+                        document.getElementById('mainStreetViewBtn').style.display = 'none';
+                    }
+                };
+
+                card.appendChild(imgThumb);
+                card.appendChild(textDiv);
+                listWrapper.appendChild(card);
+                
+                const marker = L.marker([item.lat, item.lng]).addTo(markerGroup);
+                marker.bindPopup(() => getPopupContent(item, items));
+                
+                marker.on('click', () => {
+                    if (item.image.includes('googleusercontent')) {
+                        lastStreetViewUrl = item.image;
+                        document.getElementById('mainStreetViewBtn').style.display = 'flex';
+                    } else {
+                        document.getElementById('mainStreetViewBtn').style.display = 'none';
+                    }
+                });
+            });
+
+            groupDiv.appendChild(header);
+            groupDiv.appendChild(listWrapper);
+            container.appendChild(groupDiv);
+        });
+    }
+
+    function filterByContinent(cont) {
+        const filtered = cont === 'Összes' ? rawData : rawData.filter(d => d.continent === cont);
+        renderView(filtered);
+        if (filtered.length > 0) {
+            const bounds = L.latLngBounds(filtered.map(p => [p.lat, p.lng]));
+            map.flyToBounds(bounds, { padding: [40, 40] });
+        }
+    }
+
+    function showBigImage() {
+        if (currentGalleryIndex < 0 || currentGalleryIndex >= currentGalleryItems.length) return;
+        
+        const item = currentGalleryItems[currentGalleryIndex];
+        const modal = document.getElementById("imageModal");
+        const modalImg = document.getElementById("modalImg");
+        const modalTitle = document.getElementById("modalTitle");
+        const wrapper = document.getElementById("modalWrapper");
+
+        modalImg.src = item.image;
+        modalTitle.textContent = `${item.country} - ${item.title || 'Nincs megnevezés'} (${currentGalleryIndex + 1} / ${currentGalleryItems.length})`;
+        modal.style.display = "flex";
+        
+        if(wrapper) {
+            wrapper.scrollTop = 0;
+        }
+    }
+
+    function nextImage(event) {
+        if(event) event.stopPropagation(); 
+        if (currentGalleryItems.length <= 1) return;
+        
+        currentGalleryIndex++;
+        if (currentGalleryIndex >= currentGalleryItems.length) {
+            currentGalleryIndex = 0; 
+        }
+        showBigImage();
+    }
+
+    function prevImage(event) {
+        if(event) event.stopPropagation();
+        if (currentGalleryItems.length <= 1) return;
+        
+        currentGalleryIndex--;
+        if (currentGalleryIndex < 0) {
+            currentGalleryIndex = currentGalleryItems.length - 1; 
+        }
+        showBigImage();
+    }
+
+    function closeModal(event) {
+        if (event.target.id === "imageModal" || event.target.className === "modal-scroll-wrapper") {
+            document.getElementById("imageModal").style.display = "none";
+        }
+    }
+
+    function forceCloseModal() {
+        document.getElementById("imageModal").style.display = "none";
+    }
+
+    document.addEventListener('keydown', function(event) {
+        const modal = document.getElementById("imageModal");
+        if (modal.style.display === "flex") {
+            if (event.key === "ArrowRight") {
+                nextImage();
+            } else if (event.key === "ArrowLeft") {
+                prevImage();
+            } else if (event.key === "Escape") {
+                modal.style.display = "none";
+            }
+        }
+    });
+</script>
+</body>
+</html>

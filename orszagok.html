@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <title>Utazásaim - Világjáró</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; }
+        nav { background: #2c3e50; color: white; padding: 10px 20px; display: flex; gap: 8px; align-items: center; z-index: 1001; flex-wrap: wrap; }
+        nav button { background: #34495e; border: none; color: white; padding: 8px 12px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 13px; }
+        nav button:hover { background: #1abc9c; }
+        nav b { color: #1abc9c; margin-left: 4px; }
+        
+        #mainStreetViewBtn { padding: 5px; display: none; align-items: center; background: #4285f4; }
+        #mainStreetViewBtn:hover { background: #3367d6; }
+        #mainStreetViewBtn img { height: 25px; }
+
+        .main-content { display: flex; flex: 1; overflow: hidden; }
+        #sidebar { width: 380px; background: #fff; border-right: 1px solid #ddd; overflow-y: auto; padding: 10px; }
+        #map { flex: 1; z-index: 1; }
+        .country-group { margin-bottom: 5px; border: 1px solid #ddd; border-radius: 5px; overflow: hidden; }
+        .country-header { background: #27ae60; color: white; padding: 10px 12px; cursor: pointer; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .header-left { display: flex; align-items: center; gap: 10px; }
+        .flag-img { width: 25px; height: auto; border: 1px solid white; border-radius: 2px; }
+	.location-card img { border: 1px solid #000000; }
+	/* 3. JAVÍTÁS: Fekete szegély a térképen felugró ablak (Popup) zászlóinak */
+        .leaflet-popup-content img { border: 1px solid #000000; }
+        .location-list { display: none; background: #f9f9f9; }
+        .country-group.active .location-list { display: block; }
+        .location-card { background: white; border-bottom: 1px solid #eee; padding: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+        .location-card:hover { background: #f1f1f1; }
+        .country-header b { color: #f1c40f; }
+        #imageModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; z-index: 10000; }
+        #modalImg { max-width: 90%; max-height: 90%; border: 2px solid white; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="index.html" style="text-decoration: none;"><button style="background: #e74c3c; color: white;">🏠 Főmenü</button></a>
+    <button id="btn-osszes" onclick="filterByContinent('Összes')">🌍 Összes</button>
+    <button id="btn-europa" onclick="filterByContinent('Európa')">🇪🇺 Európa</button>
+    <button id="btn-azsia" onclick="filterByContinent('Ázsia')">🌏 Ázsia</button>
+    <button id="btn-afrika" onclick="filterByContinent('Afrika')">🌍 Afrika</button>
+    <button id="btn-enamerica" onclick="filterByContinent('Észak-Amerika')">🗽 Észak-Amerika</button>
+    
+    <button id="mainStreetViewBtn" onclick="window.open(lastStreetViewUrl, '_blank')" title="Utcakép megnyitása">
+        <img src="https://lh3.googleusercontent.com/d/1DjEvY368ynCcf4Il6oQ2YZmrtIvrVn_D" alt="Street View">
+    </button>
+</nav>
+
+<div class="main-content">
+    <aside id="sidebar"><div id="list-content"></div></aside>
+    <div id="map"></div>
+</div>
+
+<div id="imageModal" onclick="this.style.display='none'"><img id="modalImg" src="" /></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    let lastStreetViewUrl = "";
+    const streetViewIcon = "https://lh3.googleusercontent.com/d/1DjEvY368ynCcf4Il6oQ2YZmrtIvrVn_D";
+
+    // Fordító szótár a rawData-ban lévő angol nevek magyarításához
+    const englishToHungarian = {
+        "Jamaica": "Jamaica", "Latvia": "Lettország", "United Kingdom": "Egyesült Királyság",
+        "Greece": "Görögország", "Monaco": "Monaco", "Tunisia": "Tunézia", "Kuwait": "Kuvait",
+        "Bahamas": "Bahama-szigetek", "Tanzania": "Tanzánia", "Morocco": "Marokkó", "Montenegro": "Montenegró",
+        "Portugal": "Portugália", "United Arab Emirates": "Egyesült Arab Emírségek", "Luxembourg": "Luxemburg",
+        "Bosnia and Herzegovina": "Bosznia-Hercegovina", "Estonia": "Észtország", "United States": "Amerikai Egyesült Államok",
+        "Ireland": "Írország", "Oman": "Omán", "Czechia": "Csehország", "Canada": "Kanada", "Indonesia": "Indonézia",
+        "Palestine": "Palesztina", "Cyprus": "Ciprus", "Slovakia": "Szlovákia", "Slovenia": "Szlovénia",
+        "Germany": "Németország", "Kosovo": "Koszovó", "Sri Lanka": "Srí Lanka", "Belgium": "Belgium",
+        "Israel": "Izrael", "Denmark": "Dánia", "Gibraltar": "Gibraltár", "San Marino": "San Marino",
+        "Turkey": "Törökország", "Norway": "Norvégia", "Ukraine": "Ukrajna", "Sweden": "Svédország",
+        "Azerbaijan": "Azerbajdzsán", "Egypt": "Egyiptom", "Bulgaria": "Bulgária", "Andorra": "Andorra",
+        "Russia": "Oroszország", "Vatican City": "Vatikán", "Croatia": "Horvátország", "Georgia": "Georgia (Grúzia)",
+        "China": "Kína", "Italy": "Olaszország", "Switzerland": "Svájc", "Finland": "Finnország",
+        "Malta": "Málta", "Jordan": "Jordánia", "Poland": "Lengyelország", "North Macedonia": "Észak-Macedónia",
+        "France": "Franciaország", "Moldova": "Moldova", "Spain": "Spanyolország", "Mexico": "Mexikó",
+        "Serbia": "Szerbia", "Romania": "Románia", "Hungary": "Magyarország", "Albania": "Albánia",
+        "Kenya": "Kenya", "Liechtenstein": "Liechtenstein", "Cayman Islands": "Kajmán-szigetek",
+        "Austria": "Ausztria", "Netherlands": "Hollandia", "Singapore": "Szingapúr", "Transznisztria": "Transznisztria",
+        "Észak-Ciprus": "Észak-Ciprus", "Németország (NDK)": "Németország (NDK)", "Kanári-szigetek": "Kanári-szigetek"
+    };
+
+    const countryFlags = {
+        "Albánia": "al", "Amerikai Egyesült Államok": "us", "Andorra": "ad", "Ausztria": "at",
+        "Azerbajdzsán": "az", "Bahama-szigetek": "bs", "Belgium": "be", "Bosznia-Hercegovina": "ba",
+        "Bulgária": "bg", "Ciprus": "cy", "Csehország": "cz", "Dánia": "dk", "Egyesült Arab Emírségek": "ae",
+        "Egyesült Királyság": "gb", "Egyiptom": "eg", "Észak-Macedónia": "mk", "Észtország": "ee",
+        "Finnország": "fi", "Franciaország": "fr", "Georgia (Grúzia)": "ge", "Gibraltár": "gi",
+        "Görögország": "gr", "Hollandia": "nl", "Horvátország": "hr", "Indonézia": "id",
+        "Írország": "ie", "Izland": "is", "Izrael": "il", "Jamaika": "jm", "Jamaica": "jm",
+        "Jordánia": "jo", "Kajmán-szigetek": "ky", "Kanada": "ca", "Kenya": "ke", "Kína": "cn",
+        "Koszovó": "xk", "Kuvait": "kw", "Lengyelország": "pl", "Lettország": "lv", "Liechtenstein": "li",
+        "Luxemburg": "lu", "Magyarország": "hu", "Málta": "mt", "Marokkó": "ma", "Mexikó": "mx",
+        "Monaco": "mc", "Montenegró": "me", "Németország": "de", "Norvégia": "no", "Olaszország": "it",
+        "Omán": "om", "Oroszország": "ru", "Örményország": "am", "Palesztina": "ps", "Portugália": "pt",
+        "Románia": "ro", "San Marino": "sm", "Spanyolország": "es", "Srí Lanka": "lk", "Svájc": "ch",
+        "Svédország": "se", "Szingapúr": "sg", "Szerbia": "rs", "Szlovákia": "sk", "Szlovénia": "si",
+        "Tanzánia": "tz", "Törökország": "tr", "Tunézia": "tn", "Ukrajna": "ua", "Vatikán": "va",
+        "Moldova": "md", "Transznisztria": "custom_trans", "Észak-Ciprus": "custom_ncyp",
+        "Németország (NDK)": "custom_ddr", "Kanári-szigetek": "custom_ic"
+    };
+
+    const countryZooms = {
+        "Amerikai Egyesült Államok": 4, "Kanada": 4, "Oroszország": 3, "Kína": 4, "Brazília": 4,
+        "Ausztrália és Óceánia": 4, "Indonézia": 5, "Ukrajna": 6, "Franciaország": 6, "Spanyolország": 6, 
+        "Svédország": 5, "Norvégia": 5, "Németország": 6, "Németország (NDK)": 6, "Törökország": 6, "Lengyelország": 6, 
+        "Olaszország": 6, "Egyesült Királyság": 6, "Románia": 6, "Marokkó": 6, "Egyiptom": 6, "Kenya": 6, 
+        "Tanzánia": 6, "Magyarország": 8, "Ausztria": 7, "Csehország": 7, "Szlovákia": 8, "Horvátország": 7, 
+        "Szerbia": 7, "Bulgária": 7, "Görögország": 7, "Portugália": 7, "Írország": 7, "Izland": 6, 
+        "Dánia": 7, "Finnország": 6, "Észtország": 7, "Lettország": 7, "Bosznia-Hercegovina": 7, 
+        "Albánia": 8, "Észak-Macedónia": 8, "Montenegró": 8, "Koszovó": 8, "Szlovénia": 8, "Svájc": 8, 
+        "Belgium": 8, "Hollandia": 8, "Luxemburg": 10, "Moldova": 8, "Transznisztria": 9, "Ciprus": 9, 
+        "Észak-Ciprus": 9, "Izrael": 8, "Palesztina": 9, "Jordánia": 8, "Kuvait": 9, "Omán": 6, 
+        "Egyesült Arab Emírségek": 7, "Azerbajdzsán": 7, "Georgia (Grúzia)": 7, "Srí Lanka": 8, 
+        "Szingapúr": 11, "Jamaica": 9, "Bahama-szigetek": 7, "Kajmán-szigetek": 10, "Mexikó": 5, 
+        "Tunézia": 7, "Kanári-szigetek": 8, "Monaco": 14, "San Marino": 12, "Vatikán": 15, "Gibraltár": 13,
+        "Liechtenstein": 11
+    };
+
+    const rawData = [
+        { "lat": 18.25, "lng": -77.5, "title": "Jamaica", "image": "https://flagcdn.com/w320/jm.png", "continent": "Észak-Amerika", "visited": true },
+        { "lat": 57, "lng": 25, "title": "Latvia", "image": "https://flagcdn.com/w320/lv.png", "continent": "Európa", "visited": true },
+        { "lat": 51.5074, "lng": -0.1278, "title": "United Kingdom", "image": "https://flagcdn.com/w320/gb.png", "continent": "Európa", "visited": true },
+        { "lat": 37.9838, "lng": 23.7275, "title": "Greece", "image": "https://flagcdn.com/w320/gr.png", "continent": "Európa", "visited": true },
+        { "lat": 43.7314, "lng": 7.4204, "title": "Monaco", "image": "https://flagcdn.com/w320/mc.png", "continent": "Európa", "visited": true }, 
+        { "lat": 34, "lng": 9, "title": "Tunisia", "image": "https://flagcdn.com/w320/tn.png", "continent": "Tunézia", "visited": true }, 
+        { "lat": 29.3759, "lng": 47.9774, "title": "Kuwait", "image": "https://flagcdn.com/w320/kw.png", "continent": "Ázsia", "visited": true }, 
+        { "lat": 25.0343, "lng": -77.3963, "title": "Bahamas", "image": "https://flagcdn.com/w320/bs.png", "continent": "Észak-Amerika", "visited": true },
+        { "lat": -6, "lng": 35, "title": "Tanzania", "image": "https://flagcdn.com/w320/tz.png", "continent": "Afrika", "visited": true },
+        { "lat": 35.7595, "lng": -5.834, "title": "Morocco", "image": "https://flagcdn.com/w320/ma.png", "continent": "Afrika", "visited": true },
+        { "lat": 42.5, "lng": 19.3, "title": "Montenegro", "image": "https://flagcdn.com/w320/me.png", "continent": "Európa", "visited": true },
+        { "lat": 39.5, "lng": -8, "title": "Portugal", "image": "https://flagcdn.com/w320/pt.png", "continent": "Európa", "visited": true },
+        { "lat": 25.2048, "lng": 55.2708, "title": "United Arab Emirates", "image": "https://flagcdn.com/w320/ae.png", "continent": "Ázsia", "visited": true }, 
+        { "lat": 49.75, "lng": 6.16666666, "title": "Luxembourg", "image": "https://flagcdn.com/w320/lu.png", "visited": true, "continent": "Európa" },
+        { "lat": 44, "lng": 18, "title": "Bosnia and Herzegovina", "image": "https://flagcdn.com/w320/ba.png", "continent": "Európa", "visited": true },
+        { "lat": 59, "lng": 26, "title": "Estonia", "image": "https://flagcdn.com/w320/ee.png", "continent": "Európa", "visited": true },
+        { "lat": 38, "lng": -97, "title": "United States", "image": "https://flagcdn.com/w320/us.png", "continent": "Észak-Amerika", "visited": true },
+        { "lat": 53.3498, "lng": -6.2603, "title": "Ireland", "image": "https://flagcdn.com/w320/ie.png", "continent": "Európa", "visited": true },
+        { "lat": 23.5859, "lng": 58.4059, "title": "Oman", "image": "https://flagcdn.com/w320/om.png", "continent": "Ázsia", "visited": true }, 
+        { "lat": 49.75, "lng": 15.5, "title": "Czechia", "image": "https://flagcdn.com/w320/cz.png", "continent": "Európa", "visited": true },
+        { "lat": 43.6532, "lng": -79.3832, "title": "Canada", "image": "https://flagcdn.com/w320/ca.png", "continent": "Észak-Amerika", "visited": true },
+        { "lat": -8.4095, "lng": 115.1889, "title": "Indonesia", "image": "https://flagcdn.com/w320/id.png", "continent": "Ausztrália és Óceánia", "visited": true },
+        { "lat": 31.9, "lng": 35.2, "title": "Palestine", "image": "https://flagcdn.com/w320/ps.png", "continent": "Ázsia", "visited": true }, 
+        { "lat": 35, "lng": 33, "title": "Cyprus", "image": "https://flagcdn.com/w320/cy.png", "continent": "Európa", "visited": true },
+        { "lat": 48.66666666, "lng": 19.5, "title": "Slovakia", "image": "https://flagcdn.com/w320/sk.png", "continent": "Európa", "visited": true },
+        { "lat": 46.11666666, "lng": 14.81666666, "title": "Slovenia", "image": "https://flagcdn.com/w320/si.png", "continent": "Európa", "visited": true },
+        { "lat": 51, "lng": 9, "title": "Germany", "image": "https://flagcdn.com/w320/de.png", "continent": "Európa", "visited": true },
+        { "lat": 42.666667, "lng": 21.166667, "title": "Kosovo", "image": "https://flagcdn.com/w320/xk.png", "continent": "Európa", "visited": true },
+        { "lat": 7, "lng": 81, "title": "Sri Lanka", "image": "https://flagcdn.com/w320/lk.png", "continent": "Ázsia", "visited": true },
+        { "lat": 50.83333333, "lng": 4, "title": "Belgium", "image": "https://flagcdn.com/w320/be.png", "continent": "Európa", "visited": true },
+        { "lat": 32.0853, "lng": 34.7818, "title": "Israel", "image": "https://flagcdn.com/w320/il.png", "continent": "Ázsia", "visited": true }, 
+        { "lat": 55.6761, "lng": 12.5683, "title": "Denmark", "image": "https://flagcdn.com/w320/dk.png", "continent": "Európa", "visited": true },
+        { "lat": 36.1408, "lng": -5.3536, "title": "Gibraltar", "image": "https://flagcdn.com/w320/gi.png", "continent": "Európa", "visited": true }, 
+        { "lat": 43.9356, "lng": 12.4473, "title": "San Marino", "image": "https://flagcdn.com/w320/sm.png", "continent": "Európa", "visited": true }, 
+        { "lat": 39, "lng": 35, "title": "Turkey", "image": "https://flagcdn.com/w320/tr.png", "continent": "Európa", "visited": true },
+        { "lat": 62, "lng": 10, "title": "Norway", "image": "https://flagcdn.com/w320/no.png", "continent": "Európa", "visited": true },
+        { "lat": 49, "lng": 32, "title": "Ukraine", "image": "https://flagcdn.com/w320/ua.png", "continent": "Európa", "visited": true },
+        { "lat": 62, "lng": 15, "title": "Sweden", "image": "https://flagcdn.com/w320/se.png", "continent": "Európa", "visited": true },
+        { "lat": 40.5, "lng": 47.5, "title": "Azerbaijan", "image": "https://flagcdn.com/w320/az.png", "continent": "Európa", "visited": true },
+        { "lat": 25.6872, "lng": 32.6396, "title": "Egypt", "image": "https://flagcdn.com/w320/eg.png", "continent": "Afrika", "visited": true },
+        { "lat": 43, "lng": 25, "title": "Bulgaria", "image": "https://flagcdn.com/w320/bg.png", "continent": "Európa", "visited": true },
+        { "lat": 42.5, "lng": 1.5, "title": "Andorra", "image": "https://flagcdn.com/w320/ad.png", "continent": "Európa", "visited": true },
+        { "lat": 55.7558, "lng": 37.6173, "title": "Russia", "image": "https://flagcdn.com/w320/ru.png", "continent": "Ázsia", "visited": true },
+        { "lat": 41.9022, "lng": 12.4539, "title": "Vatican City", "image": "https://flagcdn.com/w320/va.png", "continent": "Európa", "visited": true }, 
+        { "lat": 44.1194, "lng": 15.2314, "title": "Croatia", "image": "https://flagcdn.com/w320/hr.png", "continent": "Európa", "visited": true },
+        { "lat": 42, "lng": 43.5, "title": "Georgia", "image": "https://flagcdn.com/w320/ge.png", "continent": "Európa", "visited": true },
+        { "lat": 35, "lng": 105, "title": "China", "image": "https://flagcdn.com/w320/cn.png", "continent": "Ázsia", "visited": true },
+        { "lat": 40.8518, "lng": 14.2681, "title": "Italy", "image": "https://flagcdn.com/w320/it.png", "continent": "Európa", "visited": true },
+        { "lat": 47, "lng": 8, "title": "Switzerland", "image": "https://flagcdn.com/w320/ch.png", "continent": "Európa", "visited": true },
+        { "lat": 60.1699, "lng": 24.9384, "title": "Finland", "image": "https://flagcdn.com/w320/fi.png", "continent": "Európa", "visited": true },
+        { "lat": 35.9375, "lng": 14.3754, "title": "Malta", "image": "https://flagcdn.com/w320/mt.png", "continent": "Európa", "visited": true },
+        { "lat": 31, "lng": 36, "title": "Jordan", "image": "https://flagcdn.com/w320/jo.png", "continent": "Ázsia", "visited": true }, 
+        { "lat": 52, "lng": 20, "title": "Poland", "image": "https://flagcdn.com/w320/pl.png", "continent": "Európa", "visited": true },
+        { "lat": 41.83333333, "lng": 22, "title": "North Macedonia", "image": "https://flagcdn.com/w320/mk.png", "continent": "Európa", "visited": true },
+        { "lat": 48.8566, "lng": 2.3522, "title": "France", "image": "https://flagcdn.com/w320/fr.png", "continent": "Európa", "visited": true },
+        { "lat": 47.0105, "lng": 28.8638, "title": "Moldova", "image": "https://flagcdn.com/w320/md.png", "continent": "Európa", "visited": true },
+        { "lat": 40, "lng": -4, "title": "Spain", "image": "https://flagcdn.com/w320/es.png", "continent": "Európa", "visited": true },
+        { "lat": 23, "lng": -102, "title": "Mexico", "image": "https://flagcdn.com/w320/mx.png", "continent": "Észak-Amerika", "visited": true },
+        { "lat": 44, "lng": 21, "title": "Serbia", "image": "https://flagcdn.com/w320/rs.png", "continent": "Európa", "visited": true },
+        { "lat": 46, "lng": 25, "title": "Romania", "image": "https://flagcdn.com/w320/ro.png", "continent": "Európa", "visited": true },
+        { "lat": 47, "lng": 20, "title": "Hungary", "image": "https://flagcdn.com/w320/hu.png", "continent": "Európa", "visited": true },
+        { "lat": 41.323, "lng": 19.4414, "title": "Albania", "image": "https://flagcdn.com/w320/al.png", "continent": "Európa", "visited": true },
+        { "lat": 1, "lng": 38, "title": "Kenya", "image": "https://flagcdn.com/w320/ke.png", "continent": "Afrika", "visited": true },
+        { "lat": 47.1410, "lng": 9.5214, "title": "Liechtenstein", "image": "https://flagcdn.com/w320/li.png", "continent": "Európa", "visited": true }, 
+        { "lat": 19.3133, "lng": -81.2546, "title": "Cayman Islands", "image": "https://flagcdn.com/w320/ky.png", "continent": "Észak-Amerika", "visited": true },
+        { "lat": 47.33333333, "lng": 13.33333333, "title": "Austria", "image": "https://flagcdn.com/w320/at.png", "continent": "Európa", "visited": true },
+        { "lat": 51.9244, "lng": 4.4777, "title": "Netherlands", "image": "https://flagcdn.com/w320/nl.png", "continent": "Európa", "visited": true },
+        { "lat": 1.3521, "lng": 103.8198, "title": "Singapore", "image": "https://flagcdn.com/w320/sg.png", "continent": "Ázsia", "visited": true }, 
+        { "lat": 35.2500, "lng": 33.4500, "title": "Észak-Ciprus", "image": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Flag_of_the_Turkish_Republic_of_Northern_Cyprus.svg", "continent": "Európa", "visited": true },
+        // A HIÁNYZÓ 3 HELYSZÍN REKORDJA VISSZATÉVE:
+        { "lat": 52.5200, "lng": 13.4050, "title": "Németország (NDK)", "country": "Németország (NDK)", "image": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Flag_of_East_Germany.svg", "continent": "Európa", "visited": true },
+        { "lat": 46.8403, "lng": 29.6389, "title": "Transznisztria", "country": "Transznisztria", "image": "https://upload.wikimedia.org/wikipedia/commons/b/bc/Flag_of_Transnistria_%28state%29.svg", "continent": "Európa", "visited": true },
+        { "lat": 28.2916, "lng": -16.6291, "title": "Kanári-szigetek", "country": "Kanári-szigetek", "image": "https://lh3.googleusercontent.com/d/14OpoBEZj3_WKN17LzX07cDdEweT5tVLj", "continent": "Európa", "visited": true }
+    ];
+
+    // AUTOMATIKUS GENERÁLÁS: Legeneráljuk a hiányzó magyar országneveket induláskor
+    rawData.forEach(p => {
+        if (!p.country) {
+            p.country = englishToHungarian[p.title] || p.title;
+        }
+    });
+
+    const map = L.map('map').setView([40, 15], 3);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    const markerGroup = L.layerGroup().addTo(map);
+
+    function updateStats() {
+        const totalPoints = rawData.length;
+        const allCountries = [...new Set(rawData.map(item => item.country))].length;
+        document.getElementById('btn-osszes').innerHTML = `🌍 Összes (${allCountries} ország, ${totalPoints} pont)`;
+
+        const continents = {
+            'btn-europa': 'Európa',
+            'btn-azsia': 'Ázsia',
+            'btn-afrika': 'Afrika',
+            'btn-enamerica': 'Észak-Amerika'
+        };
+
+        for (let id in continents) {
+            const contName = continents[id];
+            const count = [...new Set(rawData.filter(item => item.continent === contName).map(item => item.country))].length;
+            const btn = document.getElementById(id);
+            if (btn) {
+                const originalText = btn.innerHTML.split('(')[0].trim(); 
+                btn.innerHTML = `${originalText} (${count})`;
+            }
+        }
+    }
+
+    function getPopupContent(item) {
+        const isStreetView = item.image && item.image.includes("google.com/maps");
+        let content = `<div style="text-align:center;"><strong>${item.country}</strong><br>`;
+        
+        if (isStreetView) {
+            content += `
+                <a href="${item.image}" target="_blank" style="text-decoration:none; color:#4285f4; font-weight:bold;">
+                    <img src="${streetViewIcon}" style="width:100px; margin:10px 0; border-radius:5px;"><br>
+                    Utcakép! Kattints ide!
+                </a>`;
+        } else if (item.image) {
+            content += `<img src="${item.image}" width="180" onclick="showBigImage('${item.image}')" style="cursor:pointer;margin-top:8px;border-radius:3px;">`;
+        }
+        content += `</div>`;
+        return content;
+    }
+
+    function renderView(data) {
+        const container = document.getElementById('list-content');
+        container.innerHTML = '';
+        markerGroup.clearLayers();
+
+        const grouped = data.reduce((acc, obj) => {
+            if (!acc[obj.country]) acc[obj.country] = [];
+            acc[obj.country].push(obj);
+            return acc;
+        }, {});
+
+        // Kigyűjtjük az országok neveit, és a magyar ékezeteket figyelembe véve ABC-sorrendbe tesszük őket
+        const sortedCountries = Object.keys(grouped).sort((a, b) => a.localeCompare(b, 'hu'));
+
+        // A rendezett listán megyünk végig, így az NDK, Tiraszpol és a Kanári is a pontos helyére kerül
+        sortedCountries.forEach(country => {
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'country-group';
+
+            const fCode = countryFlags[country] || "un"; 
+            let flagHTML = (fCode === "custom_trans") ? `<img src="https://upload.wikimedia.org/wikipedia/commons/b/bc/Flag_of_Transnistria_%28state%29.svg" class="flag-img">` : 
+                           (fCode === "custom_ncyp") ? `<img src="https://upload.wikimedia.org/wikipedia/commons/1/1e/Flag_of_the_Turkish_Republic_of_Northern_Cyprus.svg" class="flag-img">` : 
+                           (fCode === "custom_ddr") ? `<img src="https://upload.wikimedia.org/wikipedia/commons/a/a1/Flag_of_East_Germany.svg" class="flag-img">` :
+			   (fCode === "custom_ic") ? `<img src="https://lh3.googleusercontent.com/d/14OpoBEZj3_WKN17LzX07cDdEweT5tVLj" class="flag-img">` : 
+                           `<img src="https://flagcdn.com/w40/${fCode}.png" class="flag-img">`;
+
+            const header = document.createElement('div');
+            header.className = 'country-header';
+            header.innerHTML = `<div class="header-left">${flagHTML} <span>${country} (${grouped[country].length})</span></div><span>▼</span>`;
+            
+            const listWrapper = document.createElement('div');
+            listWrapper.className = 'location-list';
+
+            header.onclick = () => {
+                const isActive = groupDiv.classList.contains('active');
+                document.querySelectorAll('.country-group').forEach(g => g.classList.remove('active'));
+                if (!isActive) {
+                    groupDiv.classList.add('active');
+                    
+                    const firstPoint = grouped[country][0];
+                    const coords = [firstPoint.lat, firstPoint.lng];
+                    const customZoom = countryZooms[country] || 8;
+                    
+                    map.flyTo(coords, customZoom, { duration: 1.2 });
+                    
+                    markerGroup.eachLayer(marker => {
+                        if (marker.getLatLng().lat === firstPoint.lat && marker.getLatLng().lng === firstPoint.lng) {
+                            setTimeout(() => { marker.openPopup(); }, 300);
+                        }
+                    });
+                }
+            };
+
+            grouped[country].forEach(item => {
+                const isStreetView = item.image && item.image.includes("google.com/maps");
+                const thumbSrc = isStreetView ? streetViewIcon : item.image;
+
+                const card = document.createElement('div');
+                card.className = 'location-card';
+                card.innerHTML = `
+                    <img src="${thumbSrc}" style="width: 50px; height: 40px; object-fit: cover; border-radius: 3px; cursor: pointer;" 
+                         onclick="event.stopPropagation(); ${isStreetView ? `window.open('${item.image}','_blank')` : `showBigImage('${item.image}')`}">
+                    <span>${item.country}</span>
+                `;
+
+                card.onclick = (e) => {
+                    e.stopPropagation();
+                    const coords = [item.lat, item.lng];
+                    const customZoom = countryZooms[item.country] || 8;
+                    
+                    map.flyTo(coords, customZoom, { duration: 0.5 });
+                    
+                    if (isStreetView) {
+                        lastStreetViewUrl = item.image;
+                        document.getElementById('mainStreetViewBtn').style.display = 'flex';
+                    } else {
+                        document.getElementById('mainStreetViewBtn').style.display = 'none';
+                    }
+
+                    L.popup({ 
+                        autoPan: false,
+                        offset: L.point(0, -40)
+                    }).setLatLng(coords).setContent(getPopupContent(item)).openOn(map);
+                };
+
+                listWrapper.appendChild(card);
+                L.marker([item.lat, item.lng]).addTo(markerGroup).bindPopup(getPopupContent(item)).on('click', () => {
+                    if (isStreetView) {
+                        lastStreetViewUrl = item.image;
+                        document.getElementById('mainStreetViewBtn').style.display = 'flex';
+                    } else {
+                        document.getElementById('mainStreetViewBtn').style.display = 'none';
+                    }
+                });
+            });
+
+            groupDiv.appendChild(header);
+            groupDiv.appendChild(listWrapper);
+            container.appendChild(groupDiv);
+        });
+    }
+
+    function filterByContinent(cont) {
+        const filtered = cont === 'Összes' ? rawData : rawData.filter(d => d.continent === cont);
+        renderView(filtered);
+        if (filtered.length > 0) {
+            const bounds = L.latLngBounds(filtered.map(p => [p.lat, p.lng]));
+            map.flyToBounds(bounds, { padding: [40, 40] });
+        }
+    }
+
+    function showBigImage(src) {
+        document.getElementById("modalImg").src = src;
+        document.getElementById("imageModal").style.display = "flex";
+    }
+
+    updateStats();
+    renderView(rawData);
+</script>
+</body>
+</html>
