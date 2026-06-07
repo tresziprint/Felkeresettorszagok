@@ -138,17 +138,37 @@
             console.error("Hiba történt:", err);
             alert("Hiba az adatok betöltésekor! Ellenőrizd, hogy az adat.json a html mellett van-e.");
         });
+function updateStats() {
+        // --- ÖSSZES SZÁMOLÁSA ---
+        const totalPoints = rawData.length;
+        // Kiszűrjük az egyedi országokat a teljes listából
+        const totalCountries = [...new Set(rawData.map(item => item.country))].length;
+        
+        document.getElementById('btn-osszes').innerHTML = `🌍 Összes: <b>(${totalCountries} ország, ${totalPoints} pont)</b>`;
 
-    function updateStats() {
-        const total = rawData.length;
-        document.getElementById('btn-osszes').innerHTML = `🌍 Összes: <b>${total}</b>`;
+        // --- KONTINENSEK SZÁMOLÁSA ---
         ['Európa', 'Ázsia', 'Afrika', 'Észak-Amerika'].forEach(cont => {
-            const count = rawData.filter(d => d.continent === cont).length;
+            // Kiszűrjük az adott kontinenshez tartozó pontokat
+            const continentItems = rawData.filter(d => d.continent === cont);
+            const pointsCount = continentItems.length;
+            
+            // Kiszűrjük az adott kontinensen belüli egyedi országokat
+            const countriesCount = [...new Set(continentItems.map(item => item.country))].length;
+            
+            // Megkeressük a gomb ID-ját
             const id = cont === 'Észak-Amerika' ? 'btn-enamerica' : `btn-${cont.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
             const btn = document.getElementById(id);
+            
             if(btn) {
+                // Megtartjuk az eredeti emoji-t a gomb elejéről
                 const prefix = btn.innerText.split(':')[0];
-                btn.innerHTML = `${prefix}: <b>${count}</b>`;
+                
+                // Ha van pont az adott kontinensen, kiírjuk az országokat és pontokat, ha nincs, akkor 0-át kap
+                if (pointsCount > 0) {
+                    btn.innerHTML = `${prefix}: <b>(${countriesCount} ország, ${pointsCount} pont)</b>`;
+                } else {
+                    btn.innerHTML = `${prefix}: <b>(0 ország, 0 pont)</b>`;
+                }
             }
         });
     }
