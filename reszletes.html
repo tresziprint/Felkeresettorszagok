@@ -1,3 +1,4 @@
+HTML
 <!DOCTYPE html>
 <html lang="hu">
 <head>
@@ -67,7 +68,7 @@
     <button id="btn-afrika">🌍 Afrika</button>
     <button id="btn-enamerica">🗽 Észak-Amerika</button>
     
-    <button id="mainStreetViewBtn" onclick="window.open(lastStreetViewUrl, '_blank')", title="Utcakép megnyitása">
+    <button id="mainStreetViewBtn" onclick="window.open(lastStreetViewUrl, '_blank')" title="Utcakép megnyitása">
         <img src="https://lh3.googleusercontent.com/d/1p411aUYb8x5hW_cYnpzFTq4g6rh1UuR34" alt="Street View">
     </button>
 </nav>
@@ -93,7 +94,6 @@
     let currentGalleryIndex = -1;  
     let rawData = [];
 
-    // A te egyedi Street View ikonod linkje konstansként elmentve
     const customSvIconUrl = "https://lh3.googleusercontent.com/d/1p411aUYb8x5hW_cYnpzFTq4g6rh1UuR34";
 
     const countryFlags = {
@@ -167,7 +167,6 @@
         const itemIndex = countryItems.indexOf(item);
         const isSV = checkIsStreetView(item);
         
-        // JAVÍTÁS: A felugró ablakban (popup) is a te egyedi ikonod jelenik meg gombként!
         if (isSV || !item.image || item.image.trim() === "") {
             return `
                 <div class="popup-container">
@@ -252,7 +251,6 @@
                 const imgThumb = document.createElement('img');
                 imgThumb.className = 'card-thumb';
                 
-                // JAVÍTÁS: A bal oldali menülistában (sidebar) is a te egyedi ikonod jelenik meg kisképként!
                 if (checkIsStreetView(item) || !item.image || item.image.trim() === "") {
                     imgThumb.src = customSvIconUrl;
                     imgThumb.onclick = (e) => { e.stopPropagation(); window.open(item.image, '_blank'); };
