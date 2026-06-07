@@ -14,7 +14,7 @@
         
         #mainStreetViewBtn { padding: 5px; display: none; align-items: center; background: #4285f4; border: none; color: white; cursor: pointer; border-radius: 4px; }
         #mainStreetViewBtn:hover { background: #3367d6; }
-        #mainStreetViewBtn img { height: 25px; }
+        #mainStreetViewBtn img { height: 25px; width: auto; }
 
         .main-content { display: flex; flex: 1; overflow: hidden; }
         #sidebar { width: 380px; background: #fff; border-right: 1px solid #ddd; overflow-y: auto; padding: 10px; }
@@ -41,6 +41,10 @@
         .popup-img:hover { opacity: 0.8; }
         .popup-hint { font-size: 10px; color: #7f8c8d; margin-top: 3px; }
 
+        .popup-sv-box { padding: 15px; background: #f1f1f1; border-radius: 4px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; border: 1px solid #ddd; }
+        .popup-sv-box:hover { background: #e8e8e8; }
+        .popup-sv-icon { width: 40px; height: 40px; object-fit: contain; }
+
         #imageModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.94); justify-content: center; align-items: center; z-index: 10000; }
         .modal-scroll-wrapper { width: 100%; height: 100%; overflow-y: auto; display: flex; justify-content: center; align-items: center; padding: 40px 0; box-sizing: border-box; }
         #modalImg { max-width: 85%; max-height: 85vh; border: 2px solid white; border-radius: 5px; object-fit: contain; cursor: pointer; }
@@ -63,8 +67,8 @@
     <button id="btn-afrika">🌍 Afrika</button>
     <button id="btn-enamerica">🗽 Észak-Amerika</button>
     
-    <button id="mainStreetViewBtn" onclick="window.open(lastStreetViewUrl, '_blank')" title="Utcakép megnyitása">
-        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'><path d='M12 2c-4.42 0-8 3.58-8 8 0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z'/></svg>" alt="Street View">
+    <button id="mainStreetViewBtn" onclick="window.open(lastStreetViewUrl, '_blank')", title="Utcakép megnyitása">
+        <img src="https://lh3.googleusercontent.com/d/1p411aUYb8x5hW_cYnpzFTq4g6rh1UuR34" alt="Street View">
     </button>
 </nav>
 
@@ -88,6 +92,9 @@
     let currentGalleryItems = []; 
     let currentGalleryIndex = -1;  
     let rawData = [];
+
+    // A te egyedi Street View ikonod linkje konstansként elmentve
+    const customSvIconUrl = "https://lh3.googleusercontent.com/d/1p411aUYb8x5hW_cYnpzFTq4g6rh1UuR34";
 
     const countryFlags = {
     "Albánia": "al", "Amerikai Egyesült Államok": "us", "Andorra": "ad", "Ausztria": "at",
@@ -150,7 +157,6 @@
         });
     }
 
-    // Okos Street View ellenőrző: igazat ad, ha a link Google Maps/Streetview jellegű, vagy ha explicit megadtad a JSON-ben
     function checkIsStreetView(item) {
         if (!item.image) return false;
         const url = item.image.toLowerCase();
@@ -161,13 +167,14 @@
         const itemIndex = countryItems.indexOf(item);
         const isSV = checkIsStreetView(item);
         
-        // Ha utcakép, egy stílusos Google Maps ikont dobunk be a felugró ablakba kép helyett
+        // JAVÍTÁS: A felugró ablakban (popup) is a te egyedi ikonod jelenik meg gombként!
         if (isSV || !item.image || item.image.trim() === "") {
             return `
                 <div class="popup-container">
                     <div class="popup-title">${item.title || 'Nincs megnevezés'}</div>
-                    <div style="padding: 15px; background: #f1f1f1; border-radius: 4px; cursor:pointer;" onclick="window.open('${item.image}', '_blank')">
-                        <span style="font-size: 30px;">📍</span><br><b style="color:#4285f4; font-size:12px;">Utcakép / Térkép megnyitása</b>
+                    <div class="popup-sv-box" onclick="window.open('${item.image}', '_blank')">
+                        <img class="popup-sv-icon" src="${customSvIconUrl}" alt="Ikon" />
+                        <b style="color:#4285f4; font-size:12px;">Utcakép megnyitása</b>
                     </div>
                     <div class="popup-hint">➔ Kattints a dobozra a megnyitáshoz</div>
                 </div>
@@ -245,9 +252,9 @@
                 const imgThumb = document.createElement('img');
                 imgThumb.className = 'card-thumb';
                 
-                // Ha utcakép link vagy üres, akkor egy térkép ikont teszünk be kis indexképnek
+                // JAVÍTÁS: A bal oldali menülistában (sidebar) is a te egyedi ikonod jelenik meg kisképként!
                 if (checkIsStreetView(item) || !item.image || item.image.trim() === "") {
-                    imgThumb.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234285f4'><path d='M12 2c-4.42 0-8 3.58-8 8 0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z'/></svg>";
+                    imgThumb.src = customSvIconUrl;
                     imgThumb.onclick = (e) => { e.stopPropagation(); window.open(item.image, '_blank'); };
                 } else {
                     imgThumb.src = item.image;
@@ -296,15 +303,12 @@
         
         const item = currentGalleryItems[currentGalleryIndex];
         
-        // JAVÍTÁS: Ha az aktuális elem egy utcakép vagy nincs képe, ugorjuk át a galériában!
         if (checkIsStreetView(item) || !item.image || item.image.trim() === "") {
-            // Megnézzük, van-e egyáltalzen bármilyen normális kép ebben a csoportban, nehogy végtelen ciklusba fussunk
             const hasAnyValidImage = currentGalleryItems.some(i => !checkIsStreetView(i) && i.image && i.image.trim() !== "");
             if (!hasAnyValidImage) {
                 document.getElementById("imageModal").style.display = "none";
                 return;
             }
-            // Automatikusan lépünk a következőre
             currentGalleryIndex++;
             if (currentGalleryIndex >= currentGalleryItems.length) currentGalleryIndex = 0;
             showBigImage();
@@ -325,47 +329,4 @@
     function nextImage(event) {
         if(event) event.stopPropagation(); 
         if (currentGalleryItems.length <= 1) return;
-        currentGalleryIndex++;
-        if (currentGalleryIndex >= currentGalleryItems.length) currentGalleryIndex = 0; 
-        showBigImage();
-    }
-
-    function prevImage(event) {
-        if(event) event.stopPropagation();
-        if (currentGalleryItems.length <= 1) return;
-        currentGalleryIndex--;
-        if (currentGalleryIndex < 0) currentGalleryIndex = currentGalleryItems.length - 1; 
-        
-        // Visszafelé lépkedésnél ha átugrandó elemet találunk, addig lépünk vissza, míg jó képet nem találunk
-        if (currentGalleryIndex >= 0 && (checkIsStreetView(currentGalleryItems[currentGalleryIndex]) || !currentGalleryItems[currentGalleryIndex].image)) {
-            if (currentGalleryItems.some(i => !checkIsStreetView(i) && i.image)) {
-                while(checkIsStreetView(currentGalleryItems[currentGalleryIndex]) || !currentGalleryItems[currentGalleryIndex].image) {
-                    currentGalleryIndex--;
-                    if (currentGalleryIndex < 0) currentGalleryIndex = currentGalleryItems.length - 1;
-                }
-            }
-        }
-        showBigImage();
-    }
-
-    function closeModal(event) {
-        if (event.target.id === "imageModal" || event.target.className === "modal-scroll-wrapper") {
-            document.getElementById("imageModal").style.display = "none";
-        }
-    }
-
-    function forceCloseModal() {
-        document.getElementById("imageModal").style.display = "none";
-    }
-
-    document.addEventListener('keydown', function(event) {
-        const modal = document.getElementById("imageModal");
-        if (modal.style.display === "flex") {
-            if (event.key === "ArrowRight") nextImage();
-            else if (event.key === "ArrowLeft") prevImage();
-            else if (event.key === "Escape") modal.style.display = "none";
-        }
-    });
-</script>
-</body>
-</html>
+        currentGalleryIndex
