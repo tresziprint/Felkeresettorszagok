@@ -1,5 +1,5 @@
 [
-      {
+  {
     "lat": -8.370537,
     "lng": 115.13555997222223,
     "title": "063 - IMG_20230719_122954.jpg",
@@ -106,7 +106,7 @@
   {
     "lat": -8.369647470824434,
     "lng": 115.13303875923158,
-    "title": "Jatiluwih - Rizs terasz, Bali, Lesser Sunda Islands, 82152, Indonézia",
+    "title": "Jatiluwih - Rizsterasz, Bali, Lesser Sunda Islands, 82152, Indonézia",
     "image": "https://lh3.googleusercontent.com/d/1nkqwb2axBdDasPNlewklC_nIY0XFzqkC",
     "country": "Indonézia",
     "continent": "Ázsia"
@@ -130,7 +130,7 @@
   {
     "lat": -8.27380208250887,
     "lng": 115.16387343406679,
-    "title": "Cibet macska, Repülő kútya, Leguán, Bali, Lesser Sunda Islands, 81162, Indonézia",
+    "title": "Cibet macska, Repülőkutya, Leguán, Bali, Lesser Sunda Islands, 81162, Indonézia",
     "image": "https://lh3.googleusercontent.com/d/1SvXD4CHt0T-v7eGMXMf2tszxg0JQKfcI",
     "country": "Indonézia",
     "continent": "Ázsia"
@@ -162,7 +162,7 @@
   {
     "lat": -8.370257808090638,
     "lng": 115.3397297859192,
-    "title": "Cofee Nature, Cibet kávé, BAS De ATAYANA, Bangli, Bali, Lesser Sunda Islands, Indonézia",
+    "title": "Coffee Nature, Cibet kávé, BAS De ATAYANA, Bangli, Bali, Lesser Sunda Islands, Indonézia",
     "image": "https://lh3.googleusercontent.com/d/1Ae7ZzSxcxEXyhI2VJBrsH2LRzIk7xq3P",
     "country": "Indonézia",
     "continent": "Ázsia"
@@ -210,7 +210,7 @@
   {
     "lat": -8.682612737876516,
     "lng": 115.43301165103914,
-    "title": "Villa Mutiara, Kikötő, Musa Lembongan sziget, Indonézia",
+    "title": "Villa Mutiara, Kikötő, Nusa Lembongan sziget, Indonézia",
     "image": "https://lh3.googleusercontent.com/d/1skPBov5O-FKrr_XTl17ivsWoPb5S1Zvs",
     "country": "Indonézia",
     "continent": "Ázsia"
@@ -274,7 +274,7 @@
   {
     "lat": -8.715505433597379,
     "lng": 115.45905053615571,
-    "title": "Crystal Bay Beach, Nusa Penida, Indonezia",
+    "title": "Crystal Bay Beach, Nusa Penida, Indonézia",
     "image": "https://lh3.googleusercontent.com/d/10D0q4Vwb7jr9hngJPBP5qFsFfWLDPDVm",
     "country": "Indonézia",
     "continent": "Ázsia"
@@ -322,7 +322,7 @@
   {
     "lat": -8.522345078464197,
     "lng": 115.28488934040071,
-    "title": "Lanaya vízesés, Bali, Lesser Sunda Islands, 80515, Indonézia",
+    "title": "Layana vízesés, Bali, Lesser Sunda Islands, 80515, Indonézia",
     "image": "https://lh3.googleusercontent.com/d/15Bu86vFpgdJCD56oRyzKltdx5hm3sQ0C",
     "country": "Indonézia",
     "continent": "Ázsia"
@@ -330,7 +330,7 @@
   {
     "lat": -8.52259442207292,
     "lng": 115.28457820415498,
-    "title": "Layana Warung Étterem, Ropógós kacsa, 80515, Indonézia",
+    "title": "Layana Warung Étterem, Ropogós kacsa, 80515, Indonézia",
     "image": "https://lh3.googleusercontent.com/d/1aFjsfg-9JPcOXdZA8WTklfEy1l7ALdXp",
     "country": "Indonézia",
     "continent": "Ázsia"
@@ -898,7 +898,7 @@
   {
     "lat": 25.7787352494614,
     "lng": -80.1779329776764,
-    "title": "Carnival Crusise Terminal, North Cruise Boulevard, Port of Miami, HMS Bounty, Miami, Miami-Dade megye, Florida, 33132, Amerikai Egyesült Államok",
+    "title": "Carnival Cruise Terminal, North Cruise Boulevard, Port of Miami, HMS Bounty, Miami, Miami-Dade megye, Florida, 33132, Amerikai Egyesült Államok",
     "image": "https://lh3.googleusercontent.com/d/1l8Po1sej1DTIMtFoWmkJhANdgA1tGW3w",
     "country": "Amerikai Egyesült Államok",
     "continent": "Észak-Amerika"
@@ -938,7 +938,7 @@
   {
     "lat": 24.146753594703075,
     "lng": -78.92578125000001,
-    "title": "Carnival Breese",
+    "title": "Carnival Breeze",
     "image": "https://lh3.googleusercontent.com/d/1TsjZxfFaAFNRW74p51epybDcWqiMMEi-",
     "country": "Bahama-szigetek",
     "continent": "Észak-Amerika"
@@ -1348,13 +1348,6 @@
     "lng": -86.97736501693727,
     "title": "Carretera Perimetral Cozumel, San Miguel de Cozumel, Cozumel, Quintana Roo, 77675, Mexikó",
     "image": "https://lh3.googleusercontent.com/d/1RVUHwXGpWC3zF-F1BZGwCyfuaLOriBjU",
-    "country": "Mexikó",
-    "continent": "Észak-Amerika"
-  },
-  {
-    "lat": 20.462721116394494,
-    "lng": -86.94271087646484,
-    "title": "Julio Góngora, Cozumel, Quintana Roo, 77645, Mexikó",
     "country": "Mexikó",
     "continent": "Észak-Amerika"
   },
@@ -4823,13 +4816,6 @@
     "continent": "Észak-Amerika"
   },
   {
-    "lat": 41.314806999999995,
-    "lng": -72.92077197222223,
-    "title": "Yale School of Management, Edward P. Evans Hall, 165, Whitney Avenue, East Rock, Dixwell, New Haven, Connecticut, 06518, Amerikai Egyesült Államok",
-    "country": "Amerikai Egyesült Államok",
-    "continent": "Észak-Amerika"
-  },
-  {
     "lat": 42.358730225189966,
     "lng": -71.05755865573884,
     "title": "Old State House, 208, Washington Street, Downtown Crossing, Downtown Boston, Boston, Suffolk County, Massachusetts, 02109, Amerikai Egyesült Államok",
@@ -5594,13 +5580,6 @@
     "lng": -73.98563504219057,
     "title": "1, Times Square, Theater District, Manhattan Community Board 5, Manhattan, New York County, New York, 10036, Amerikai Egyesült Államok",
     "image": "https://lh3.googleusercontent.com/d/1kQZdq_6NmHYj3a1nPRYx0-u2V7tZbNde",
-    "country": "Amerikai Egyesült Államok",
-    "continent": "Észak-Amerika"
-  },
-  {
-    "lat": 40.75743259766501,
-    "lng": -73.98444414138795,
-    "title": "150, West 45th Street, Theater District, Manhattan Community Board 5, Manhattan, New York County, New York, 10036, Amerikai Egyesült Államok",
     "country": "Amerikai Egyesült Államok",
     "continent": "Észak-Amerika"
   },
@@ -6867,5 +6846,13 @@
     "image": "https://lh3.googleusercontent.com/d/1ptgFRj3qn6bbLTWRq5XvFKec6WNLborP",
     "country": "Tanzánia",
     "continent": "Afrika"
+  },
+  {
+    "lat": 41.30834775165558,
+    "lng": -72.92806148529054,
+    "title": "YALE, Phelps Hall, College Street, New Haven, Connecticut, Egyesült Államok",
+    "image": "https://lh3.googleusercontent.com/d/1PB9DCdmcSwe4Lurt30rxCjkJm4LeJRp9",
+    "country": "Egyesült Államok",
+    "continent": "Ismeretlen földrész"
   }
 ]
