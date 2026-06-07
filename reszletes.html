@@ -12,7 +12,7 @@
         nav button:hover { background: #1abc9c; }
         nav b { color: #f1c40f; margin-left: 4px; }
         
-        #mainStreetViewBtn { padding: 5px; display: none; align-items: center; background: #4285f4; }
+        #mainStreetViewBtn { padding: 5px; display: none; align-items: center; background: #4285f4; border: none; color: white; cursor: pointer; border-radius: 4px; }
         #mainStreetViewBtn:hover { background: #3367d6; }
         #mainStreetViewBtn img { height: 25px; }
 
@@ -87,8 +87,6 @@
     let lastStreetViewUrl = "";
     let currentGalleryItems = []; 
     let currentGalleryIndex = -1;  
-    
-    // Ide fogjuk beolvasni a külső fájlt
     let rawData = [];
 
     const countryFlags = {
@@ -114,67 +112,68 @@
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
     const markerGroup = L.layerGroup().addTo(map);
 
-    // --- KÜLSŐ DATA BETÖLTÉSE ---
     fetch('adat.json')
         .then(response => {
-            if (!response.ok) throw new Error("Nem sikerült beolvasni az adat.json fájlt.");
+            if (!response.ok) throw new Error("Nem sikerült beolvasni az adat.json-t.");
             return response.json();
         })
         .then(data => {
-            rawData = data; // Eltároljuk a beolvasott tömböt
-            
-            // Gombok eseménykezelőinek dinamikus bekötése
+            rawData = data;
             document.getElementById('btn-osszes').onclick = () => filterByContinent('Összes');
             document.getElementById('btn-europa').onclick = () => filterByContinent('Európa');
             document.getElementById('btn-azsia').onclick = () => filterByContinent('Ázsia');
             document.getElementById('btn-afrika').onclick = () => filterByContinent('Afrika');
             document.getElementById('btn-enamerica').onclick = () => filterByContinent('Észak-Amerika');
-
-            // Program indítása az adatokkal
             updateStats();
             renderView(rawData);
         })
         .catch(err => {
-            console.error("Hiba történt:", err);
-            alert("Hiba az adatok betöltésekor! Ellenőrizd, hogy az adat.json a html mellett van-e.");
+            console.error(err);
+            alert("Hiba az adatok betöltésekor!");
         });
-function updateStats() {
-        // --- ÖSSZES SZÁMOLÁSA ---
+
+    function updateStats() {
         const totalPoints = rawData.length;
-        // Kiszűrjük az egyedi országokat a teljes listából
         const totalCountries = [...new Set(rawData.map(item => item.country))].length;
-        
         document.getElementById('btn-osszes').innerHTML = `🌍 Összes: <b>(${totalCountries} ország, ${totalPoints} pont)</b>`;
 
-        // --- KONTINENSEK SZÁMOLÁSA ---
         ['Európa', 'Ázsia', 'Afrika', 'Észak-Amerika'].forEach(cont => {
-            // Kiszűrjük az adott kontinenshez tartozó pontokat
             const continentItems = rawData.filter(d => d.continent === cont);
             const pointsCount = continentItems.length;
-            
-            // Kiszűrjük az adott kontinensen belüli egyedi országokat
             const countriesCount = [...new Set(continentItems.map(item => item.country))].length;
-            
-            // Megkeressük a gomb ID-ját
             const id = cont === 'Észak-Amerika' ? 'btn-enamerica' : `btn-${cont.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
             const btn = document.getElementById(id);
-            
             if(btn) {
-                // Megtartjuk az eredeti emoji-t a gomb elejéről
                 const prefix = btn.innerText.split(':')[0];
-                
-                // Ha van pont az adott kontinensen, kiírjuk az országokat és pontokat, ha nincs, akkor 0-át kap
-                if (pointsCount > 0) {
-                    btn.innerHTML = `${prefix}: <b>(${countriesCount} ország, ${pointsCount} pont)</b>`;
-                } else {
-                    btn.innerHTML = `${prefix}: <b>(0 ország, 0 pont)</b>`;
-                }
+                btn.innerHTML = pointsCount > 0 ? `${prefix}: <b>(${countriesCount} ország, ${pointsCount} pont)</b>` : `${prefix}: <b>(0 ország, 0 pont)</b>`;
             }
         });
     }
 
+    // Okos Street View ellenőrző: igazat ad, ha a link Google Maps/Streetview jellegű, vagy ha explicit megadtad a JSON-ben
+    function checkIsStreetView(item) {
+        if (!item.image) return false;
+        const url = item.image.toLowerCase();
+        return url.includes('google.com/maps') || url.includes('maps.app.goo.gl') || url.includes('ggpht.com') || item.isStreetView === true;
+    }
+
     function getPopupContent(item, countryItems) {
         const itemIndex = countryItems.indexOf(item);
+        const isSV = checkIsStreetView(item);
+        
+        // Ha utcakép, egy stílusos Google Maps ikont dobunk be a felugró ablakba kép helyett
+        if (isSV || !item.image || item.image.trim() === "") {
+            return `
+                <div class="popup-container">
+                    <div class="popup-title">${item.title || 'Nincs megnevezés'}</div>
+                    <div style="padding: 15px; background: #f1f1f1; border-radius: 4px; cursor:pointer;" onclick="window.open('${item.image}', '_blank')">
+                        <span style="font-size: 30px;">📍</span><br><b style="color:#4285f4; font-size:12px;">Utcakép / Térkép megnyitása</b>
+                    </div>
+                    <div class="popup-hint">➔ Kattints a dobozra a megnyitáshoz</div>
+                </div>
+            `;
+        }
+        
         return `
             <div class="popup-container">
                 <div class="popup-title">${item.title || 'Nincs megnevezés'}</div>
@@ -190,6 +189,15 @@ function updateStats() {
         currentGalleryIndex = index;
         showBigImage();
     };
+
+    function handleStreetViewButtonVisibility(item) {
+        if (checkIsStreetView(item)) {
+            lastStreetViewUrl = item.image;
+            document.getElementById('mainStreetViewBtn').style.display = 'flex';
+        } else {
+            document.getElementById('mainStreetViewBtn').style.display = 'none';
+        }
+    }
 
     function renderView(data) {
         markerGroup.clearLayers();
@@ -211,18 +219,11 @@ function updateStats() {
 
             const header = document.createElement('div');
             header.className = 'country-header';
-            
             const flagCode = countryFlags[country] || 'un';
             const flagSrc = flagCode.startsWith('custom_') ? '' : `https://flagcdn.com/w20/${flagCode}.png`;
             const flagHtml = flagSrc ? `<img class='flag-img' src='${flagSrc}' alt=''>` : `<span style='font-size:12px;'>🏳️</span>`;
 
-            header.innerHTML = `
-                <div class="header-left">
-                    ${flagHtml}
-                    <span>${country}</span>
-                </div>
-                <span><b>${items.length}</b> db</span>
-            `;
+            header.innerHTML = `<div class="header-left">${flagHtml}<span>${country}</span></div><span><b>${items.length}</b> db</span>`;
 
             const listWrapper = document.createElement('div');
             listWrapper.className = 'location-list';
@@ -230,7 +231,6 @@ function updateStats() {
             header.onclick = () => {
                 const isActive = groupDiv.classList.contains('active');
                 document.querySelectorAll('.country-group').forEach(g => g.classList.remove('active'));
-                
                 if (!isActive) {
                     groupDiv.classList.add('active');
                     const countryBounds = L.latLngBounds(items.map(p => [p.lat, p.lng]));
@@ -244,14 +244,15 @@ function updateStats() {
                 
                 const imgThumb = document.createElement('img');
                 imgThumb.className = 'card-thumb';
-                imgThumb.src = item.image;
                 
-                imgThumb.onclick = (e) => {
-                    e.stopPropagation();
-                    currentGalleryItems = items;
-                    currentGalleryIndex = items.indexOf(item);
-                    showBigImage();
-                };
+                // Ha utcakép link vagy üres, akkor egy térkép ikont teszünk be kis indexképnek
+                if (checkIsStreetView(item) || !item.image || item.image.trim() === "") {
+                    imgThumb.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234285f4'><path d='M12 2c-4.42 0-8 3.58-8 8 0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z'/></svg>";
+                    imgThumb.onclick = (e) => { e.stopPropagation(); window.open(item.image, '_blank'); };
+                } else {
+                    imgThumb.src = item.image;
+                    imgThumb.onclick = (e) => { e.stopPropagation(); currentGalleryItems = items; currentGalleryIndex = items.indexOf(item); showBigImage(); };
+                }
 
                 const textDiv = document.createElement('div');
                 textDiv.className = 'card-text';
@@ -262,17 +263,8 @@ function updateStats() {
                     const coords = [item.lat, item.lng];
                     map.flyTo(coords, 14);
                     
-                    L.popup({ autoPan: false })
-                        .setLatLng(coords)
-                        .setContent(getPopupContent(item, items))
-                        .openOn(map);
-                    
-                    if (item.image.includes('googleusercontent')) {
-                        lastStreetViewUrl = item.image;
-                        document.getElementById('mainStreetViewBtn').style.display = 'flex';
-                    } else {
-                        document.getElementById('mainStreetViewBtn').style.display = 'none';
-                    }
+                    L.popup({ autoPan: false }).setLatLng(coords).setContent(getPopupContent(item, items)).openOn(map);
+                    handleStreetViewButtonVisibility(item);
                 };
 
                 card.appendChild(imgThumb);
@@ -281,15 +273,7 @@ function updateStats() {
                 
                 const marker = L.marker([item.lat, item.lng]).addTo(markerGroup);
                 marker.bindPopup(() => getPopupContent(item, items));
-                
-                marker.on('click', () => {
-                    if (item.image.includes('googleusercontent')) {
-                        lastStreetViewUrl = item.image;
-                        document.getElementById('mainStreetViewBtn').style.display = 'flex';
-                    } else {
-                        document.getElementById('mainStreetViewBtn').style.display = 'none';
-                    }
-                });
+                marker.on('click', () => { handleStreetViewButtonVisibility(item); });
             });
 
             groupDiv.appendChild(header);
@@ -311,6 +295,22 @@ function updateStats() {
         if (currentGalleryIndex < 0 || currentGalleryIndex >= currentGalleryItems.length) return;
         
         const item = currentGalleryItems[currentGalleryIndex];
+        
+        // JAVÍTÁS: Ha az aktuális elem egy utcakép vagy nincs képe, ugorjuk át a galériában!
+        if (checkIsStreetView(item) || !item.image || item.image.trim() === "") {
+            // Megnézzük, van-e egyáltalzen bármilyen normális kép ebben a csoportban, nehogy végtelen ciklusba fussunk
+            const hasAnyValidImage = currentGalleryItems.some(i => !checkIsStreetView(i) && i.image && i.image.trim() !== "");
+            if (!hasAnyValidImage) {
+                document.getElementById("imageModal").style.display = "none";
+                return;
+            }
+            // Automatikusan lépünk a következőre
+            currentGalleryIndex++;
+            if (currentGalleryIndex >= currentGalleryItems.length) currentGalleryIndex = 0;
+            showBigImage();
+            return;
+        }
+        
         const modal = document.getElementById("imageModal");
         const modalImg = document.getElementById("modalImg");
         const modalTitle = document.getElementById("modalTitle");
@@ -319,30 +319,31 @@ function updateStats() {
         modalImg.src = item.image;
         modalTitle.textContent = `${item.country} - ${item.title || 'Nincs megnevezés'} (${currentGalleryIndex + 1} / ${currentGalleryItems.length})`;
         modal.style.display = "flex";
-        
-        if(wrapper) {
-            wrapper.scrollTop = 0;
-        }
+        if(wrapper) wrapper.scrollTop = 0;
     }
 
     function nextImage(event) {
         if(event) event.stopPropagation(); 
         if (currentGalleryItems.length <= 1) return;
-        
         currentGalleryIndex++;
-        if (currentGalleryIndex >= currentGalleryItems.length) {
-            currentGalleryIndex = 0; 
-        }
+        if (currentGalleryIndex >= currentGalleryItems.length) currentGalleryIndex = 0; 
         showBigImage();
     }
 
     function prevImage(event) {
         if(event) event.stopPropagation();
         if (currentGalleryItems.length <= 1) return;
-        
         currentGalleryIndex--;
-        if (currentGalleryIndex < 0) {
-            currentGalleryIndex = currentGalleryItems.length - 1; 
+        if (currentGalleryIndex < 0) currentGalleryIndex = currentGalleryItems.length - 1; 
+        
+        // Visszafelé lépkedésnél ha átugrandó elemet találunk, addig lépünk vissza, míg jó képet nem találunk
+        if (currentGalleryIndex >= 0 && (checkIsStreetView(currentGalleryItems[currentGalleryIndex]) || !currentGalleryItems[currentGalleryIndex].image)) {
+            if (currentGalleryItems.some(i => !checkIsStreetView(i) && i.image)) {
+                while(checkIsStreetView(currentGalleryItems[currentGalleryIndex]) || !currentGalleryItems[currentGalleryIndex].image) {
+                    currentGalleryIndex--;
+                    if (currentGalleryIndex < 0) currentGalleryIndex = currentGalleryItems.length - 1;
+                }
+            }
         }
         showBigImage();
     }
@@ -360,13 +361,9 @@ function updateStats() {
     document.addEventListener('keydown', function(event) {
         const modal = document.getElementById("imageModal");
         if (modal.style.display === "flex") {
-            if (event.key === "ArrowRight") {
-                nextImage();
-            } else if (event.key === "ArrowLeft") {
-                prevImage();
-            } else if (event.key === "Escape") {
-                modal.style.display = "none";
-            }
+            if (event.key === "ArrowRight") nextImage();
+            else if (event.key === "ArrowLeft") prevImage();
+            else if (event.key === "Escape") modal.style.display = "none";
         }
     });
 </script>
